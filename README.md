@@ -63,3 +63,35 @@ pip3 install -r requirements.txt
 
 #### Install COLMAP
 Follow their available [installation guide](https://colmap.github.io/install.html) for system specific guidelines.
+
+# 3D Garment Modeling Repository
+
+## Repository Structure
+
+```
+3D-Garment-Modeling/
+├── assets/                         # Documents (Paper, images, plots, etc.)
+├── configs/                        # Configuration files
+├── data/                           # Data storage
+│   ├── images/                     # subject instance
+│   │   ├── images/                 # RGB input frames
+│   │   ├── masks/                  # Label and mask images
+│   │   ├── cameras.json            # Cameras information
+│   └── README.md                   # Detailed description of the data format requirements
+├── models/                         # Pretrained or saved models
+│   ├── checkpoints/                # Model checkpoints
+│   ├── final/                      # Final trained models
+│   └── README.md                   # Details on model architectures
+├── notebooks/                      # Jupyter notebooks for experiments
+├── scripts/                        # Bash scripts for running stages
+├── src/                            
+│   ├── datasets/                   # Data handling modules
+│   ├── losses/                     # Model definitions
+│   ├── models/                     # Loss functions
+│   ├── stages/                     # Steps of Gaussian Garments pipeline
+│   ├── utils/                      # Helper functions
+│   └── __init__.py                 
+├── README.md                       # Project overview and setup instructions
+├── requirements.txt                # Python dependencies
+├── .gitignore                      # Files and folders to ignore in Git
+```
