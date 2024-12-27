@@ -1,0 +1,13 @@
+opencv-python
+huepy
+trimesh
+plyfile
+open3d
+roma
+einops
+smplx
+fused
+pymeshlab
+aitviewer
+wandb
+git+https://github.com/facebookresearch/pytorch3d.git
