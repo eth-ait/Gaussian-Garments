@@ -1,5 +1,7 @@
 opencv-python
 huepy
+munch
+pyacvd
 trimesh
 plyfile
 open3d
