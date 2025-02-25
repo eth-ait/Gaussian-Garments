@@ -80,7 +80,7 @@ def post_process(_path, fg_label, edge_len=0.01, vis=False):
     clus = pyacvd.Clustering(mesh)
     clus.cluster(8000)
     remesh = clus.create_mesh()
-    remesh.save(os.path.join(_path, "remesh.obj"))
+    remesh.save(os.path.join(_path, "template.obj"))
     if vis: remesh.plot(color='w', show_edges=True)
 
     print('[Post Process] Done')

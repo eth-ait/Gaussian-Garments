@@ -11,7 +11,8 @@ from src.datasets.prepare_4Ddress import Prepare4DDress
 
 def build_parser():
     parser = ArgumentParser("Stage 1: Garment initialization.")
-    parser.add_argument("--source_path", "-s", required=True, type=str, help="The path to the cameras.json folder")
+    parser.add_argument("--subject_path", "-s", required=True, type=str, help="The path to the subject folder that contains equence folders")
+    parser.add_argument("--sequence_name", "-q", required=True, type=str, help="The name of the sequence dir, containing cameras.json")
     parser.add_argument("--garment_label", "-g", required=True, type=str)
     parser.add_argument("--output_path", "-o", required=False, type=str, help="The name of the output folder to be store results in.")
     parser.add_argument("--edge_len", default=0.01, type=float)
@@ -21,7 +22,7 @@ def build_parser():
     return parser
 
 def main(args):
-    dataset = Prepare4DDress(args.source_path if args.output_path is None else args.output_path)
+    dataset = Prepare4DDress(args.subject_path, args.sequence_name)
     colmap(dataset.output_root, args.camera, int(not args.no_gpu))
     post_process(dataset.output_root, args.garment_label, args.edge_len, args.visualize)
 

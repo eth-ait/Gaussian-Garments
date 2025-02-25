@@ -1,15 +1,19 @@
 import os
+from pathlib import Path
 import shutil
 from abc import ABC, abstractmethod
+import sys
+from src.common.defaults import DEFAULTS
 
 # TODO: 
 # update & integrate with the rest of the codebase. Right now, this
 # is a standalone class that does not have much functionality beyond the 
 # first stage.
 class PrepareDataset(ABC):
-    def __init__(self, data_folder):
-        self.data_folder = data_folder
-        self.output_root = '../../data/outputs/' + '_'.join(map(str, self.data_folder.split('/')))
+    def __init__(self, subject, sequence):
+        self.subject = subject
+        # self.output_root = '../../data/outputs/' + '_'.join(map(str, self.data_folder.split('/'))) # TODO: replace with folder from DEFAULTS
+        self.output_root = Path(DEFAULTS.output_root) / self.subject / 'stage1'
         self.prepare_output_dir()
         
     def prepare_output_dir(self):

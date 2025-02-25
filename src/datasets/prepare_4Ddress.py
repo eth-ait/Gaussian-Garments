@@ -1,6 +1,7 @@
 import os
 import json
 import glob
+from pathlib import Path
 import numpy as np
 from PIL import Image
 
@@ -13,24 +14,25 @@ from .prepare_data import PrepareDataset
 from src.common.defaults import DEFAULTS
 
 class Prepare4DDress(PrepareDataset):
-    def __init__(self, data_folder):
-        super().__init__(data_folder)
+    def __init__(self, subject, sequence):
+        super().__init__(subject, sequence)
 
         SURFACE_LABELS = ['full_body', 'skin', 'upper', 'lower', 'hair', 'glove', 'shoe', 'outer', 'background']
         GRAY_VALUES = np.array([255, 128, 98, 158, 188, 218, 38, 68, 255])
 
-        self.data_path = DEFAULTS.host_root + self.data_folder  
+        self.sequence_path = Path(DEFAULTS.data_root) / self.subject  / sequence
         self.mask_label = dict(zip(SURFACE_LABELS, GRAY_VALUES))
-        self.fg_label = SURFACE_LABELS[0]
+        self.fg_label = 'upper' # TODO: REMOVE
         self.load_cam_params()
         self.populate_directory()
     
     def load_cam_params(self):
-        camera_params = json.load(open(os.path.join(self.data_path, 'cameras.json'), 'r'))
+        # TODO: Why not just copy?
+        camera_params = json.load(open(os.path.join(self.sequence_path, 'cameras.json'), 'r'))
         json.dump(camera_params, open(os.path.join(self.output_root, 'cameras.json'), 'w'))
     
     def populate_directory(self):
-        cam_paths = sorted([os.path.join(self.data_path, fn) for fn in os.listdir(self.data_path) if '00' in fn])
+        cam_paths = sorted([os.path.join(self.sequence_path, fn) for fn in os.listdir(self.sequence_path) if '00' in fn])
 
         _imgs = sorted(glob.glob(os.path.join(cam_paths[0], "capture_images/*.png")))
         start_frame = int(_imgs[0].split('/')[-1].split(".png")[0])
