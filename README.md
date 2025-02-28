@@ -59,6 +59,7 @@ python initialisation.py --subject 00190/Inner --sequence Take2 --garment_type I
 | `camera`                         | Camera model used in COLMAP                                                     |PINHOLE       |
 | `no_gpu`                         | Whether to use GPU for feature extraction and matching.                         |False         |
 | `visualize`                      | Whether to visualize the results.                                               |False         |
+</details>
 
 ### Evaluation
 
