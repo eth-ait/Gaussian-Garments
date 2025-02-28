@@ -50,15 +50,17 @@ To train the model on 4D-Dress dataset, we recommend the following steps:
 python initialisation.py --subject 00190/Inner --sequence Take2 --garment_type Inner
 ```
 <details>
-<summary>Parameters</summary>
-| Parameter                        | Description                                                                     | Default      |
-|----------------------------------|---------------------------------------------------------------------------------|--------------|
-| `subject`                        | Subject folder name that contains the sequence folders                          |-             |
-| `sequence`                       | Sequence identifier, folder containing cameras.json and camera folders          |-             |
-| `garment_type`                   | The garment label to be processed                                               |-             |
-| `camera`                         | Camera model used in COLMAP                                                     |PINHOLE       |
-| `no_gpu`                         | Whether to use GPU for feature extraction and matching.                         |False         |
-| `visualize`                      | Whether to visualize the results.                                               |False         |
+<summary> Parameters </summary>
+
+| Parameter  | Description  | Default value  |
+|-----------|-----------|-----------|
+| `subject`    | Subject folder name that contains the sequence folders    | -    |
+| `sequence`    | Sequence identifier, folder containing cameras.json and camera folders    | -    |
+| `garment_type`    | The garment label to be processed    | -    |
+| `camera`    | Camera model used in COLMAP    | PINHOLE    |
+| `no_gpu`    | Whether to use GPU for feature extraction and matching.    | False    |
+| `visualize`    | Whether to visualize the post-processing stages.    | False    |
+
 </details>
 
 ### Evaluation
