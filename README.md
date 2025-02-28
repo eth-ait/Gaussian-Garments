@@ -47,7 +47,7 @@ To train the model on 4D-Dress dataset, we recommend the following steps:
 1. Ensure that the data input is prepared as detailed in the [data/README.md](./data/README.md)
 2. Run the first stage by:
 ```bash
-python initialisation.py --subject 00190/Inner --sequence Take2 --garment_type Inner
+python initialisation.py --subject 00190/Inner --sequence Take2 --garment_type upper
 ```
 <details>
 <summary> Parameters </summary>

@@ -1,6 +1,8 @@
 # my stuff
 convert4d.py
 data/*
+dependencies/*
+colmap
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
