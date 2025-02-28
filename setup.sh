@@ -11,7 +11,10 @@
 # echo "Conda environment 'gg' is now activated."
 
 # install conda dependencies
-conda install pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 pytorch-cuda=11.8 -c pytorch -c nvidia
+conda install pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 pytorch-cuda=11.8 -c pytorch -c nvidia -y
+conda install cuda -c nvidia/label/cuda-11.8.0 -y
+conda install gcc=11.4.0 gxx=11.4.0 -y
+export CUDA_HOME=$CONDA_PREFIX
 
 # bpy usually has a higher requirement to python env, so we install it early
 pip install bpy
