@@ -5,6 +5,10 @@ This is the official training and inference repository for the paper [Gaussian G
 - [Setup & Installation](#setup--installation)
     - [Prerequisites](#prerequisites)
     - [Environment Setup](#environment-setup)
+- [Using Gaussian Garments](#training--evaluation)
+    - [Training](#training)
+    - [Evaluation](#evaluation)
+- [Repository Structure](#repository-structure)
 
 ## Setup & Installation
 ### Prerequisites
@@ -24,73 +28,63 @@ git clone https://github.com/hlimach/Gaussian-Garments.git  --recursive
 ### Environment Setup
 #### Create and activate conda environment
 ```bash
+cd Gaussian-Garments
 conda create -n gauss_env python=3.10
 conda activate gauss_env
 ```
-#### Install pyTorch that matches with your CUDA version
-We used pytorch-cuda=11.8
+#### Run setup script
+Please ensure to edit the script to match your pyTorch and CUDA versions.
 ```bash
-conda install pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 pytorch-cuda=11.8 -c pytorch -c nvidia
-```
-
-#### Install bpy
-It usually has a higher requirement to python env, so we install it early
-```bash
-pip install bpy
-```
-
-#### Clone [Animatable Gaussians](https://github.com/lizhe00/AnimatableGaussians) repo and install diff_gaussian_rasterization_depth_alpha
-```bash
-git clone https://github.com/lizhe00/AnimatableGaussians.git --recursive
-cd AnimatableGaussians/gaussians/diff_gaussian_rasterization_depth_alpha
-python setup.py install
-cd ../../network/styleunet/
-python setup.py install
-cd ../../..
-```
-
-#### Clone [Gaussian Splatting](https://github.com/graphdeco-inria/gaussian-splatting) repo and install simple_knn
-```bash
-git clone https://github.com/graphdeco-inria/gaussian-splatting.git --recursive
-cd gaussian-splatting/submodules/simple-knn/
-python setup.py install
-cd ../../..
-```
-#### Install remaining requirements using pip
-```bash
-pip3 install -r requirements.txt
+bash setup.sh
 ```
 
 #### Install COLMAP
 Follow their available [installation guide](https://colmap.github.io/install.html) for system specific guidelines.
 
-# 3D Garment Modeling Repository
+## Training & Evaluation
+### Training
+To train the model on 4D-Dress dataset, we recommend the following steps:
+1. Ensure that the data input is prepared as detailed in the [data/README.md](./data/README.md)
+2. Run the first stage by:
+```bash
+python initialisation.py --subject 00190/Inner --sequence Take2 --garment_type upper
+```
+<details>
+<summary> Parameters </summary>
+
+| Parameter  | Description  | Default value  |
+|-----------|-----------|-----------|
+| `subject`    | Subject folder name that contains the sequence folders    | -    |
+| `sequence`    | Sequence identifier, folder containing cameras.json and camera folders    | -    |
+| `garment_type`    | The garment label to be processed    | -    |
+| `camera`    | Camera model used in COLMAP    | PINHOLE    |
+| `no_gpu`    | Whether to use GPU for feature extraction and matching.    | False    |
+| `visualize`    | Whether to visualize the post-processing stages.    | False    |
+
+</details>
+
+### Evaluation
 
 ## Repository Structure
 
 ```
 3D-Garment-Modeling/
-├── assets/                         # Documents (Paper, images, plots, etc.)
-├── configs/                        # Configuration files
 ├── data/                           # Data storage
-│   ├── images/                     # subject instance
-│   │   ├── images/                 # RGB input frames
-│   │   ├── masks/                  # Label and mask images
-│   │   ├── cameras.json            # Cameras information
-│   └── README.md                   # Detailed description of the data format requirements
-├── models/                         # Pretrained or saved models
-│   ├── checkpoints/                # Model checkpoints
-│   ├── final/                      # Final trained models
-│   └── README.md                   # Details on model architectures
-├── notebooks/                      # Jupyter notebooks for experiments
-├── scripts/                        # Bash scripts for running stages
-├── src/                            
-│   ├── datasets/                   # Data handling modules
-│   ├── losses/                     # Model definitions
-│   ├── models/                     # Loss functions
-│   ├── stages/                     # Steps of Gaussian Garments pipeline
-│   ├── utils/                      # Helper functions
-│   └── __init__.py                 
+│   ├── input/                      # Root to input data
+│   ├── outputs/                    # Output root for each run
+│   └── README.md                   # Detailed description of the data format requirements and output details
+├── dependencies/                   # Dependency submodules cloned in this subdir
+├── utils/                          # All of the source code 
+│   ├── arg_utils.py                # Builds argument functions for each stage. 
+│   ├── defaults.py                 # Stores default params such as the data root.
+│   ├── initialisation_utils.py     # Functions for the initialisation stage.
+│   ├── parse_scan.py               # 4D-Dress specific data processing.  
+│   ├── preprocess_utils.py         # Prepares data for the initialisation stage.     
+│   └── etc.py                 
+├── setup.sh                        # bash script to handle setup.
+├── initialisation.py               # first stage, can be bypassed if custom data is used.
+├── train.py                        # training script, assumes first stage completed.
+├── eval.py                         # script to visualise final outputs
 ├── README.md                       # Project overview and setup instructions
 ├── requirements.txt                # Python dependencies
 ├── .gitignore                      # Files and folders to ignore in Git

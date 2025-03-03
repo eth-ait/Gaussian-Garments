@@ -193,9 +193,3 @@ def rasterized(th_verts, th_faces, source_path):
 if __name__ == "__main__":
     parse_scan("../datas/upper/poisson.obj", "upper")
 
-
-
-
-
-
-
