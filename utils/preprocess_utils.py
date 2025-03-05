@@ -87,6 +87,7 @@ class PrepareDataset:
             mask = label == mask_label[self.fg_label]
             if self.fg_label == 'full_body': mask = ~mask
 
+
             # use green background
             masked_img = image * mask[...,None] + np.array([0,255,0]) * ~mask[...,None]
             image = Image.fromarray(np.array(masked_img, dtype=np.byte), "RGB")
