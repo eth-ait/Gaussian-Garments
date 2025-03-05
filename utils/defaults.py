@@ -26,8 +26,13 @@ elif 'ait-server' in hostname:
 elif 'ohws68' in hostname:
     DEFAULTS['data_root'] = f'/media/sdb/Data/opengaga/Inputs/'
     DEFAULTS['output_root'] = f'/media/sdb/Data/opengaga/Outputs/'
+    DEFAULTS['aux_root'] = f'/media/sdb/Data/opengaga/aux_data/'
     DEFAULTS['server'] = 'agrigorev'
     DEFAULTS['hostname'] = hostname
+
+
+DEFAULTS['stage1'] = 'stage1'
+DEFAULTS['stage2'] = 'stage2'
 
 # turns the dictionary into a Munch object (so you can use e.g. DEFAULTS.data_root)
 DEFAULTS = munchify(DEFAULTS)

@@ -37,7 +37,7 @@ class PrepareDataset:
         self.fg_label = fg_label
         self.cam_type = cam_type
 
-        self.output_root = Path(DEFAULTS.output_root) / self.subject / 'stage1'
+        self.output_root = Path(DEFAULTS.output_root) / self.subject / DEFAULTS.stage1
         self.sequence_path = Path(DEFAULTS.data_root) / self.subject / sequence
         
         self.prepare_output_dir()
