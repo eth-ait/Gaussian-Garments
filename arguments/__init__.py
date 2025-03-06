@@ -1,0 +1,153 @@
+#
+# Copyright (C) 2023, Inria
+# GRAPHDECO research group, https://team.inria.fr/graphdeco
+# All rights reserved.
+#
+# This software is free for non-commercial, research and evaluation use 
+# under the terms of the LICENSE.md file.
+#
+# For inquiries contact  george.drettakis@inria.fr
+#
+
+from argparse import ArgumentParser, Namespace
+import sys
+import os
+
+class GroupParams:
+    pass
+
+class ParamGroup:
+    def __init__(self, parser: ArgumentParser, name : str, fill_none = False):
+        group = parser.add_argument_group(name)
+        for key, value in vars(self).items():
+            shorthand = False
+            if key.startswith("_"):
+                shorthand = True
+                key = key[1:]
+            t = type(value)
+            value = value if not fill_none else None 
+            if shorthand:
+                if t == bool:
+                    group.add_argument("--" + key, ("-" + key[0:1]), default=value, action="store_true")
+                else:
+                    group.add_argument("--" + key, ("-" + key[0:1]), default=value, type=t)
+            else:
+                if t == bool:
+                    group.add_argument("--" + key, default=value, action="store_true")
+                elif t == list:
+                    group.add_argument("--" + key, default=value, nargs='*')
+                else:
+                    group.add_argument("--" + key, default=value, type=t)
+
+    def extract(self, args):
+        group = GroupParams()
+        for arg in vars(args).items():
+            if arg[0] in vars(self) or ("_" + arg[0]) in vars(self):
+                setattr(group, arg[0], arg[1])
+        return group
+
+class ModelParams(ParamGroup): 
+    def __init__(self, parser, sentinel=False):
+        self.sh_degree = 3
+        self._resolution = -1
+        self._white_background = False # TODO: always False
+        self.data_device = "cuda"
+        self.eval = False # TODO: False in stage 1, True in stage 2
+        self.llffhold = 12
+        self._garment_type = "" # TODO: remove, assume binary masks
+        # list of garment-types: ['upper', 'lower', 'glove', 'shoe', 'outer']
+        # specific type of garment, which decides the valid faces for mesh
+        # the foreground label for 4DDress dataset, which decides the 2d foreground mask in dataloader
+        # label list ['full_body', 'skin', 'upper', 'lower', 'hair', 'glove', 'shoe', 'outer']
+
+        super().__init__(parser, "Loading Parameters", sentinel)
+
+    def extract(self, args):
+        g = super().extract(args)
+        # g.subject = os.path.abspath(g.subject)
+        return g
+
+class PipelineParams(ParamGroup):
+    def __init__(self, parser):
+        self.convert_SHs_python = False
+        self.compute_cov3D_python = False
+        self.debug = False
+        self.switch_to_D3G = False
+        super().__init__(parser, "Pipeline Parameters")
+
+
+class OptimizationParams(ParamGroup):
+    def __init__(self, parser):
+        self.iterations = None
+        self.opt_opacity_from = None
+        self.opt_mesh_from = None
+        self.position_lr_init = 0.00016
+        self.position_lr_final = 0.0000016
+        self.position_lr_delay_mult = 0.01
+        self.position_lr_max_steps = 30_000
+        self.feature_lr = 0.0025
+        self.opacity_lr = 0.05
+        self.scaling_lr = 0.005
+        self.rotation_lr = 0.001
+        self.percent_dense = 0.01
+        # loss 
+        self.lambda_dssim = 0.2
+        self.lambda_xyz = 1e-2
+        self.threshold_xyz = 1.
+        self.lambda_scale = 1.
+        self.threshold_scale = 0.6
+        self.recon_scale_threshold = 0.005
+        # self.lambda_opacity = 0.1
+        # self.lambda_neighbor = 0.1
+        # energy loss
+        # self.lambda_vv_arap = 1.
+        # self.lambda_gv_arap = 0.1
+        self.lambda_color = 0.01
+        self.lambda_bending = 0.03
+        self.lambda_stretching = 0.01
+        self.lambda_d3g = 0.001
+        self.lambda_virtual = 0.05
+        self.lambda_shs = 0.2
+        self.threshold_opacity = 0.75
+        self.lambda_opacity = 0.01
+        self.lambda_inertial = 0.
+        self.lambda_gravity = 0.
+        self.lambda_collision = 1e+3
+
+        self.densification_interval = 100
+        self.opacity_reset_interval = 3000
+        self.densify_from_iter = 500
+        self.densify_until_iter = 15_000
+        self.densify_grad_threshold = 0.0002
+        self.random_background = False
+
+        self.only_foreground_loss = True
+        # only panelize foreground zones during training
+
+        super().__init__(parser, "Optimization Parameters")
+
+class GaussianClothParams(ParamGroup):
+    def __init__(self, parser):
+        super().__init__(parser, "GaussianCloth Parameters")
+
+def get_combined_args(parser : ArgumentParser):
+    cmdlne_string = sys.argv[1:]
+    cfgfile_string = "Namespace()"
+    args_cmdline = parser.parse_args(cmdlne_string)
+
+    try:
+        cfgfilepath = os.path.join(args_cmdline.subject_out, "cfg_args")
+        print("Looking for config file in", cfgfilepath)
+        with open(cfgfilepath) as cfg_file:
+            print("Config file found: {}".format(cfgfilepath))
+            cfgfile_string = cfg_file.read()
+    except TypeError:
+        print("Config file not found at")
+        pass
+    args_cfgfile = eval(cfgfile_string)
+
+    merged_dict = vars(args_cfgfile).copy()
+    for k,v in vars(args_cmdline).items():
+        if v != None:
+            merged_dict[k] = v
+    return Namespace(**merged_dict)
