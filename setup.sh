@@ -25,7 +25,8 @@ pip install bpy
 mkdir dependencies
 cd dependencies
 
-# Clone Animatable Gaussians repo
+# Clone Animatable Gaussians repo 
+cd ..
 git clone https://github.com/lizhe00/AnimatableGaussians.git --recursive
 cd AnimatableGaussians/gaussians/diff_gaussian_rasterization_depth_alpha
 python setup.py install
@@ -33,7 +34,8 @@ cd ../../network/styleunet/
 python setup.py install
 cd ../../..
 
-# Clone Gaussian Splatting repo
+
+# Clone Gaussian Splatting repo 
 git clone https://github.com/graphdeco-inria/gaussian-splatting.git --recursive
 cd gaussian-splatting/submodules/simple-knn/
 python setup.py install
