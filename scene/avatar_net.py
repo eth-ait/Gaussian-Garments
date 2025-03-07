@@ -28,8 +28,10 @@ class AvatarNet(nn.Module):
         # else:
         # self.shadow_net = SWGAN_unet(input_size, 4, (args.sh_degree+1)**2 * 3 + 7, output_size, style_dim, n_mlp)
         self.no_xyz = args.no_xyz
-        if args.no_xyz: self.shadow_net = SWGAN_unet(input_size, 4, (args.sh_degree+1)**2 * 3, output_size, style_dim, n_mlp)
-        else: self.shadow_net = SWGAN_unet(input_size, 4, (args.sh_degree+1)**2 * 3 + 3, output_size, style_dim, n_mlp)
+        if args.no_xyz: 
+            self.shadow_net = SWGAN_unet(input_size, 4, (args.sh_degree+1)**2 * 3, output_size, style_dim, n_mlp)
+        else: 
+            self.shadow_net = SWGAN_unet(input_size, 4, (args.sh_degree+1)**2 * 3 + 3, output_size, style_dim, n_mlp)
 
         self.shadow_style = torch.ones([1, style_dim], dtype=torch.float32, device='cuda') / np.sqrt(style_dim)
         self.viewdir_net = nn.Sequential(

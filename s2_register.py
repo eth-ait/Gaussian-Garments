@@ -10,12 +10,14 @@
 
 import os
 from pathlib import Path
+from scene.cross_scene import crossScene
 import torch
 import numpy as np
 from PIL import Image
 from random import randint
 from utils.defaults import DEFAULTS
 from utils.loss_utils import l1_loss, ssim
+from sklearn import neighbors
 from gaussian_renderer import render
 import sys
 from scene import Scene, Dataloader, MeshGaussianModel
@@ -124,7 +126,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-s', '--subject', type=str, required=True, default='')
     parser.add_argument('-m', '--subject_out', type=str, default='')
-    parser.add_argument('-c', '--cross_from', type=str, default='')
+    parser.add_argument('-t', '--template_seq', type=str, default='')
     parser.add_argument('-seq', '--sequence', type=str, required=True, default='')
 
     parser.add_argument("--first_frame_iterations", type=int, default=10000)
@@ -132,6 +134,8 @@ if __name__ == "__main__":
     parser.add_argument("--collision_iteration", type=int, default=2000)
     parser.add_argument("--ff_collision_iteration", type=int, default=2000)
     parser.add_argument('--start_from', type=int, default=-1)
+
+    parser.add_argument("--camera", default="PINHOLE", type=str) # only used for cross scene
     args = parser.parse_args(sys.argv[1:])
 
     
@@ -141,6 +145,11 @@ if __name__ == "__main__":
     if len(args.subject_out) == 0:
         args.subject_out = args.subject
     args.subject_out = Path(DEFAULTS.output_root) / args.subject_out
+    args.is_template_seq = (args.template_seq == "")
+
+    if not args.is_template_seq:
+        args.first_frame_iterations = 15000
+        args.cross_from = Path(DEFAULTS.output_root) / args.subject_out / DEFAULTS.stage2 / args.template_seq
 
     
     prepare_output_and_logger(args)
@@ -151,14 +160,14 @@ if __name__ == "__main__":
     # build components
     dataloader = Dataloader(args)
     gaussians = MeshGaussianModel(args)
-    scene = Scene(args, dataloader, gaussians)
 
-    ############ DEBUG ############
+    if args.is_template_seq:
+        scene = Scene(args, dataloader, gaussians)
+    else:
+        scene = crossScene(args, dataloader, gaussians)
+
     w, h = 940, 1280
-    # w, h = 3004, 4092
-    global viewer, test_id
     viewer = HeadlessRenderer(size=(2*w, 2*h))
-    ############ DEBUG ############
 
     stage2_path = Path(args.subject_out) / DEFAULTS.stage2 / args.sequence
 
@@ -168,17 +177,19 @@ if __name__ == "__main__":
         collision_iteration = args.ff_collision_iteration if is_first_frame else args.collision_iteration
         iterations = args.first_frame_iterations + collision_iteration if is_first_frame else args.other_frame_iterations
 
-        # skip first frame if it already exists
+        # TODO: useful for testing, remove just before publising
+        ############ DEBUG ############ 
+        # skip first frame if it already exists 
         if is_first_frame and (stage2_path / "point_cloud").exists(): 
             continue 
-
         # skip if we are starting from a specific frame
         if dataloader.start_frame + t < args.start_from:
             continue
+        ############ DEBUG ############
 
 
         scene.prepare_frame(t, is_first_frame)
-        gaussians.training_setup(opt, is_first_frame)
+        gaussians.training_setup(opt, is_first_frame and args.is_template_seq)
         iter_start = torch.cuda.Event(enable_timing = True)
         iter_end = torch.cuda.Event(enable_timing = True)
         bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
@@ -191,22 +202,29 @@ if __name__ == "__main__":
         for iter in range(1, iterations+1):
             use_body = iter > iterations - collision_iteration
             # first frame remove collision
-            if is_first_frame and use_body: 
-                gaussians._xyz.requires_grad = False
-                gaussians._features_dc.requires_grad = False
-                gaussians._features_rest.requires_grad = False
-                gaussians._scaling.requires_grad = False
-                gaussians._rotation.requires_grad = False
-                gaussians._opacity.requires_grad = False
-                gaussians.mesh.v.requires_grad = True
+
+            if args.is_template_seq:
+                if is_first_frame and use_body: 
+                    gaussians._xyz.requires_grad = False
+                    gaussians._features_dc.requires_grad = False
+                    gaussians._features_rest.requires_grad = False
+                    gaussians._scaling.requires_grad = False
+                    gaussians._rotation.requires_grad = False
+                    gaussians._opacity.requires_grad = False
+                    gaussians.mesh.v.requires_grad = True
+                if is_first_frame:
+                    gaussians.update_learning_rate(iter)
+                # Every 1000 its we increase the levels of SH up to a maximum degree
+                if iter % 1000 == 0:
+                    gaussians.oneupSHdegree()
+            else:
+                if is_first_frame and iter == iterations-collision_iteration+1:
+                    face_center = gaussians.mesh.body.vertices[gaussians.mesh.body.faces].mean(-2)
+                    _, nn_list = neighbors.KDTree(face_center).query(gaussians.mesh.v.detach().cpu().numpy())
+                    gaussians.mesh.collision_faces_ids = nn_list
+                    gaussians.mesh.init_body(gaussians.mesh.body)
             iter_start.record()
             gaussians.update_face_coor()
-            if is_first_frame:
-                gaussians.update_learning_rate(iter)
-
-            # Every 1000 its we increase the levels of SH up to a maximum degree
-            if iter % 1000 == 0:
-                gaussians.oneupSHdegree()
 
             # Pick a random Camera
             if not viewpoint_stack:
@@ -230,7 +248,7 @@ if __name__ == "__main__":
             loss_dict = {}
             loss_dict['img'] = l1_loss(image, gt_image, mask) * (1.0 - opt.lambda_dssim)
             loss_dict['ssim'] = 1.0 - ssim(image, gt_image, mask) * opt.lambda_dssim
-            if is_first_frame:
+            if is_first_frame and args.is_template_seq:
                 loss_dict['xyz'] = F.relu(gaussians._xyz[visibility_filter].norm(dim=1) - opt.threshold_xyz).mean() * opt.lambda_xyz
                 loss_dict['scale']  = F.relu(gaussians.scaling_activation(gaussians._scaling[visibility_filter]) - opt.threshold_scale).norm(dim=1).mean() * opt.lambda_scale
                 if gaussians.mesh.v.requires_grad:
@@ -246,7 +264,9 @@ if __name__ == "__main__":
 
             with torch.no_grad():
                 # prune and densify
-                if is_first_frame and not use_body:
+
+                # print(f'is_first_frame: {is_first_frame}, use_body: {use_body}, args.is_template_seq: {args.is_template_seq}')
+                if is_first_frame and not use_body and args.is_template_seq:
                     # Keep track of max radii in image-space for pruning
                     gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
                     gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
@@ -265,7 +285,6 @@ if __name__ == "__main__":
 
                 # log and save
                 logger(loss_dict, iter, iterations)
-
 
                 if iter == iterations:
                     print("\n[ITER {}] Saving Gaussians".format(iter))

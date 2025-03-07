@@ -25,14 +25,14 @@ def remove_seperated_face(mesh):
     mesh.remove_unreferenced_vertices()
     return mesh
 
-def COLMAP_recon(_path, cam_type, use_gpu):
+def COLMAP_recon(_path, use_gpu=True, skip_dense=False):
     """
     Runs the COLMAP pipeline on the given source path.
     It saves the final mesh as 'template.obj' in the source path.
     Args:  
         _path (str): The path to the source folder containing images, masks, and txt files.
-        cam_type (str): The type of camera model to use for COLMAP.
         use_gpu (bool): Whether to use GPU for feature extraction and matching.
+        skip_dense (bool): Whether to skip dense reconstruction.
     """
 
     # input and output data folders
@@ -74,6 +74,8 @@ def COLMAP_recon(_path, cam_type, use_gpu):
     if exit_code != 0:
         logging.error(f"Point triangulation failed with code {exit_code}. Exiting.")
         exit(exit_code)
+
+    if skip_dense: return 
     
     ### Image undistortion
     ## We need to undistort our images into ideal pinhole intrinsics.

@@ -142,11 +142,6 @@ class Scene:
 
             _ply_idx = self.dataloader.start_frame
             print("Loading Gaussian at frame {}".format(_ply_idx))
-            # ply_path = os.path.join(self.subject_out,
-            #                         "point_cloud",
-            #                         "frame_" + str(_ply_idx),
-            #                         "local_point_cloud.ply")
-            
             ply_path = stage2_path / "point_cloud" / ("frame_" + str(_ply_idx)) / "local_point_cloud.ply"
             self.gaussians.load_ply(ply_path)
 

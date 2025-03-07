@@ -22,7 +22,7 @@ def rotmat2qvec(R):
     return qvec
 
 class PrepareDataset:
-    def __init__(self, subject, sequence, cam_type, fg_label="full_body"):
+    def __init__(self, source_root, target_root, cam_type, fg_label="full_body"):
         """
         Initializes the preprocessing utility for a given subject, sequence, and garment type.
         This method reads data from the input folder and writes the processed data to the output folder subdirectory 'stage1'. 
@@ -33,31 +33,30 @@ class PrepareDataset:
             sequence (str): The sequence identifier e.g. 'Take2'
             garment_type (str): The type of garment being processed.
         """
-        self.subject = subject
         self.fg_label = fg_label
         self.cam_type = cam_type
 
-        self.output_root = Path(DEFAULTS.output_root) / self.subject / DEFAULTS.stage1
-        self.sequence_path = Path(DEFAULTS.data_root) / self.subject / sequence
+        self.target_root = target_root
+        self.source_root = source_root
         
         self.prepare_output_dir()
         self.populate_imgs_dir()
         self.export_colmap()
         
     def prepare_output_dir(self):
-        if os.path.exists(self.output_root): 
+        if os.path.exists(self.target_root): 
             delete = input("Output path already exists. Please grant permission to remove current folder. (Y/N) ")
             if delete.lower() == 'y':
-                shutil.rmtree(self.output_root)
+                shutil.rmtree(self.target_root)
             else:
-                print(f"Error: Permission denied. Unable to proceed because the folder '{self.output_root}' already exists.")
+                print(f"Error: Permission denied. Unable to proceed because the folder '{self.target_root}' already exists.")
                 sys.exit(1)  # Terminate the program with an error status
 
-        os.makedirs(self.output_root, exist_ok=True)
-        print(f"-------\nOutput folder created at {self.output_root}\n-------")
-        self._img_out = os.path.join(self.output_root, "images")
-        self._mask_out = os.path.join(self.output_root, "masks")
-        self._txt_out = os.path.join(self.output_root, "txt")
+        os.makedirs(self.target_root, exist_ok=True)
+        print(f"-------\nOutput folder created at {self.target_root}\n-------")
+        self._img_out = os.path.join(self.target_root, "images")
+        self._mask_out = os.path.join(self.target_root, "masks")
+        self._txt_out = os.path.join(self.target_root, "txt")
         os.makedirs(self._img_out, exist_ok=True)
         os.makedirs(self._mask_out, exist_ok=True)
         os.makedirs(self._txt_out, exist_ok=True)
@@ -71,7 +70,7 @@ class PrepareDataset:
         GRAY_VALUES = np.array([255, 128, 98, 158, 188, 218, 38, 68, 255])
         mask_label = dict(zip(SURFACE_LABELS, GRAY_VALUES))
 
-        cam_paths = sorted([os.path.join(self.sequence_path, fn) for fn in os.listdir(self.sequence_path) if '00' in fn])
+        cam_paths = sorted([os.path.join(self.source_root, fn) for fn in os.listdir(self.source_root) if '00' in fn])
         _imgs = sorted(glob.glob(os.path.join(cam_paths[0], "capture_images/*.png")))
         start_frame = int(_imgs[0].split('/')[-1].split(".png")[0])
         cam_num = len(cam_paths)
@@ -105,8 +104,8 @@ class PrepareDataset:
         # locate camera_list within image_path
         image_fns = sorted(os.listdir(self._img_out))
         camera_list = [image_fn.split('.')[0] for image_fn in image_fns]
-        camera_params = json.load(open(os.path.join(self.sequence_path, 'cameras.json'), 'r'))
-        json.dump(camera_params, open(os.path.join(self.output_root, 'cameras.json'), 'w'))
+        camera_params = json.load(open(os.path.join(self.source_root, 'cameras.json'), 'r'))
+        json.dump(camera_params, open(os.path.join(self.target_root, 'cameras.json'), 'w'))
 
         for ID, camera_id in enumerate(camera_list):
             m = "w" if ID == 0 else "a"

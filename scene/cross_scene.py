@@ -26,6 +26,8 @@ import open3d as o3d
 from sklearn import neighbors
 from typing import Union, List
 from utils.defaults import DEFAULTS
+from utils.initialisation_utils import COLMAP_recon
+from utils.preprocess_utils import PrepareDataset
 from utils.system_utils import searchForMaxIteration, searchForMinFrame
 from scene.scene import Scene, getNerfppNorm, store_cam
 from scene.mesh_gaussian_model import MeshGaussianModel
@@ -89,19 +91,19 @@ class crossScene(Scene):
             random.shuffle(train_cam_infos)  # Multi-res consistent random shuffling
             random.shuffle(test_cam_infos)  # Multi-res consistent random shuffling
 
+        stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence
 
         if is_ff:
-            store_cam(self.dataloader.cam_infos, self.subject_out)
+            store_cam(self.dataloader.cam_infos, stage2_path)
             print(f"Cross from model {self.args.cross_from}")
             # first frame ICP init
             self.gaussians.mesh.v = self.sparse_icp()
 
-            cross_from_glob = os.path.join(self.args.cross_from, 'point_cloud/frame_*')
-
-            print('cross_from_glob', cross_from_glob)
-            _ply_path = sorted(glob.glob(cross_from_glob))[0]
-            print("Loading Gaussian at frame {}".format(_ply_path.split('_')[-1]))
-            ply_path = os.path.join(_ply_path, "local_point_cloud.ply")
+            cross_from_glob = self.args.cross_from / 'point_cloud' 
+            # _ply_path = sorted(glob.glob(cross_from_glob))[0]
+            _ply_path = sorted(cross_from_glob.glob('frame_*'))[0]
+            print("Loading Gaussian at frame {}".format(_ply_path.name))
+            ply_path = _ply_path / "local_point_cloud.ply"
             self.gaussians.load_ply(ply_path)
 
             # body
@@ -124,10 +126,10 @@ class crossScene(Scene):
 
             print("Loading Mesh at frame {}".format(self.current_frame-1))
             try:
-                previous = read_obj(os.path.join(self.subject_out, 'meshes', f'frame_{self.current_frame-2}.obj'))
+                previous = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-2}.obj')
             except:
-                previous = read_obj(os.path.join(self.subject_out, 'meshes', f'frame_{self.current_frame-1}.obj'))
-            current = read_obj(os.path.join(self.subject_out, 'meshes', f'frame_{self.current_frame-1}.obj'))
+                previous = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-1}.obj')
+            current = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-1}.obj')
             self.gaussians.mesh.momentum_update(current['vertices'], current['faces'])
 
             self.gaussians.mesh.tar_v = torch.tensor(current['vertices'] + (current['vertices']-previous['vertices'])).cuda()
@@ -140,96 +142,57 @@ class crossScene(Scene):
 
             _ply_idx = self.dataloader.start_frame
             print("Loading Gaussian at frame {}".format(_ply_idx))
-            ply_path = os.path.join(self.subject_out,
-                                    "point_cloud",
-                                    "frame_" + str(_ply_idx),
-                                    "local_point_cloud.ply")
-            self.gaussians.load_ply(ply_path)           
+            ply_path = stage2_path / "point_cloud" / ("frame_" + str(_ply_idx)) / "local_point_cloud.ply"
+            self.gaussians.load_ply(ply_path)
 
         self.gaussians.spatial_lr_scale = self.cameras_extent
 
     def sparse_icp(self,):
+        
         source_path = self.args.subject
 
-        ttype = Path(self.args.subject_out).parts[-3]
+        # ttype = Path(self.args.subject_out).parts[-3]
 
-        if ttype in DEFAULTS.ttypes:
-            ttype_param = f'-t {ttype}'
-        else:
-            ttype_param = ''
-            ttype = ''
+        # if ttype in DEFAULTS.ttypes:
+        #     ttype_param = f'-t {ttype}'
+        # else:
+        #     ttype_param = ''
+        #     ttype = ''
 
-        print('ttype', ttype)
-        print('ttype_param', ttype_param)
-        output_path = "../datas/"+f"/{ttype}/"+"_".join(self.args.subject.split('/'))
-
-        template_path_globstr = "../datas/"+f"/"+"_".join(self.args.subject.split('/')[:-1])+"*"
-        template_path_globstr = Path(template_path_globstr)
-
-
-        print('output_path', output_path)
-        print('template_path_globstr', template_path_globstr)
-
-        # get source body clouds
-        template_path_candidates = glob.glob(str(template_path_globstr))
-        for template_path_candidate in template_path_candidates:
-            if 'Old' in template_path_candidate:
-                continue
-            template_path_candidate = Path(template_path_candidate)
-            if check_if_template(template_path_candidate):
-                template_path = template_path_candidate
-                break
-
-
-
-        # print('template_path', template_path)
-        # assert False
-
-        points3D_path = os.path.join(template_path,"sparse/points3D.bin")
+        # print('ttype', ttype)
+        # print('ttype_param', ttype_param)
+        # output_path = "../datas/"+f"/{ttype}/"+"_".join(self.args.subject.split('/'))
+        
+        stage1_path = Path(self.subject_out) / DEFAULTS.stage1
+        stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence
+        points3D_path = stage1_path / "sparse" / "points3D.bin"
         print('points3D_path', points3D_path)
 
         source = self.binary_to_o3d(points3D_path)
 
-        # get target body clouds
-        # output_path = "../datas/"+"_".join(self.args.subject.split('/'))
-        output_path = "../datas/"+f"/{ttype}/"+"_".join(self.args.subject.split('/'))
 
-        # assert False
-        remove_folder = not os.path.exists(output_path)
-
-        # if not os.path.exists(output_path):
-        hostname = socket.gethostname()
-
-        if 'ait-server' in hostname or hostname == 'ps075' or hostname.startswith('g'):
-            sparse_recon_cmd = f"conda run -n colmap-env python ./server_sparse.py -s {source_path} -g full_body {ttype_param}"
-            # sparse_recon_cmd = sparse_recon_cmd.split(' ')
-            r = os.system(sparse_recon_cmd)
-            
-            # subprocess.run(f"conda run -n colmap-env python ./server_sparse.py -s {source_path} -g {self.args.garment_type}", shell=True)
-        # else:
-        #     prepare_4ddress(source_path, output_path, fg_label=self.args.garment_type, use_mask=True)
-        #     colmap(output_path, skip_dense=True)
-
-#             print('colmap')
-
-#         _bin = os.path.join(output_path,"sparse/points3D.bin")
-#         xyz, rgb, _ = read_points3D_binary(_bin)
+        source_root = Path(DEFAULTS.data_root) / self.args.subject / self.args.sequence
+        target_root = stage2_path / 'colmap'
+        remove_folder = not os.path.exists(target_root)
         
-        target = self.binary_to_o3d(os.path.join(output_path,"sparse/points3D.bin"))
+        print('source_root', source_root)
+        print('target_root', target_root)
 
+        PrepareDataset(source_root, target_root, self.args.camera)
+        COLMAP_recon(target_root, skip_dense=True)
+
+        points3D_path_out = stage2_path / "colmap" / "sparse" / "points3D.bin"
+        target = self.binary_to_o3d(points3D_path_out)
         # run icp
         reg_p2p = o3d.pipelines.registration.registration_icp(source, target, 10.)
-        # visualize
-        # self.draw_registration_result(source, target, reg_p2p.transformation)
-        if self.args.no_icp: 
-            aligned_points = np.array(source.points) + (np.array(target.points).mean(0) - np.array(source.points).mean(0))
-            source.points = o3d.utility.Vector3dVector(aligned_points)
-        else:
-            # replace body source mesh with garment
-            _src_mesh = sorted(glob.glob(os.path.join(self.args.cross_from, 'meshes/frame_*.obj')), key=lambda x: int(x[:-4].split('_')[-1]))[0]
-            source.points =  o3d.utility.Vector3dVector(read_obj(_src_mesh)['vertices'])
-            source.transform(reg_p2p.transformation)
-        if remove_folder: shutil.rmtree(output_path) # delete point cloud files
+
+        glob_str = os.path.join(self.args.cross_from, 'meshes/frame_*.obj')
+        print('glob_str', glob_str)
+        _src_mesh = sorted(glob.glob(os.path.join(self.args.cross_from, 'meshes/frame_*.obj')), key=lambda x: int(x[:-4].split('_')[-1]))[0]
+        source.points =  o3d.utility.Vector3dVector(read_obj(_src_mesh)['vertices'])
+        source.transform(reg_p2p.transformation)
+        if remove_folder: shutil.rmtree(target_root) # delete point cloud files
+
         return torch.tensor(np.array(source.points), dtype=torch.float32).cuda()
 
     def binary_to_o3d(self, path, nb=5):

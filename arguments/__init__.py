@@ -90,18 +90,12 @@ class OptimizationParams(ParamGroup):
         self.scaling_lr = 0.005
         self.rotation_lr = 0.001
         self.percent_dense = 0.01
-        # loss 
         self.lambda_dssim = 0.2
         self.lambda_xyz = 1e-2
         self.threshold_xyz = 1.
         self.lambda_scale = 1.
         self.threshold_scale = 0.6
         self.recon_scale_threshold = 0.005
-        # self.lambda_opacity = 0.1
-        # self.lambda_neighbor = 0.1
-        # energy loss
-        # self.lambda_vv_arap = 1.
-        # self.lambda_gv_arap = 0.1
         self.lambda_color = 0.01
         self.lambda_bending = 0.03
         self.lambda_stretching = 0.01
