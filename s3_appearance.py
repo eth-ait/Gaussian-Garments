@@ -55,7 +55,7 @@ if __name__ == "__main__":
     # parser.add_argument('-m', '--model_path', type=str, required=True) # path to optimized results folder (where 'meshes' folder should exists)
 
     parser.add_argument('-s', '--subject', type=str, required=True, default='')
-    parser.add_argument('-m', '--subject_out', type=str, default='')
+    parser.add_argument('-so', '--subject_out', type=str, default='')
     
     parser.add_argument('-g', '--garment_type', type=str, required=True) # garment label
     parser.add_argument('--ckpt_path', type=str, default='') 
