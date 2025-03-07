@@ -59,7 +59,7 @@ if __name__ == "__main__":
     
     parser.add_argument('-g', '--garment_type', type=str, required=True) # garment label
     parser.add_argument('--ckpt_path', type=str, default='') 
-    parser.add_argument('--name', type=str, default='avatar') 
+    parser.add_argument('--name', type=str, default='avatar') # TODO: remove
     # mesh gaussian config
     parser.add_argument('--sh_degree', type=int, default=3)
     parser.add_argument('--texture_size', type=int, default=512)
