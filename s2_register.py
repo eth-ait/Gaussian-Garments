@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
 
     parser.add_argument('-s', '--subject', type=str, required=True, default='')
-    parser.add_argument('-m', '--subject_out', type=str, default='')
+    parser.add_argument('-so', '--subject_out', type=str, default='')
     parser.add_argument('-t', '--template_seq', type=str, default='')
     parser.add_argument('-seq', '--sequence', type=str, required=True, default='')
 
