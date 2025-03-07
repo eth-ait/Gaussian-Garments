@@ -129,6 +129,7 @@ class AvatarGaussianModelADC(MeshGaussianModel):
         features_dc[:, 1, 0] = np.asarray(local_pc.elements[0]["f_dc_1"])
         features_dc[:, 2, 0] = np.asarray(local_pc.elements[0]["f_dc_2"])
 
+        # why catch exception?
         try:
             extra_f_names = [p.name for p in local_pc.elements[0].properties if p.name.startswith("f_rest_")]
             extra_f_names = sorted(extra_f_names, key = lambda x: int(x.split('_')[-1]))

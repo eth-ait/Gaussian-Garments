@@ -56,8 +56,6 @@ class Dataloader():
         self.white_background = args.white_background
 
         # locate sequence
-
-
         seq_path = f'{DEFAULTS.data_root}/{args.subject}/{args.sequence}'
 
 

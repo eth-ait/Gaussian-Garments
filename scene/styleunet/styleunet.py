@@ -831,13 +831,9 @@ class SWGAN_unet(nn.Module):
         for from_rgb, cond_conv in zip(self.from_rgbs, self.cond_convs):
             cond_img, cond_out = from_rgb(cond_img, cond_out)
             cond_out = cond_conv(cond_out)
-            # print('Down', cond_img.shape, cond_out.shape)
             cond_list.append(cond_out)
             cond_num += 1
 
-        # out = self.input(latent)
-        # out = self.conv1(out, latent[:, 0], noise=noise[0])
-        # skip = self.to_rgb1(out, latent[:, 1])
         i = 0
         skip = None
         for conv1, conv2, noise1, noise2, to_rgb in zip(
@@ -851,7 +847,6 @@ class SWGAN_unet(nn.Module):
             out = conv1(out, latent[:, i], noise=noise1)
             out = conv2(out, latent[:, i + 1], noise=noise2)
             skip = to_rgb(out, latent[:, i + 2], skip)
-            # print('Up', out.shape, skip.shape)
             if view_feature is not None and i == 8:
                 view_feature = F.interpolate(view_feature, out.shape[-2:], mode = 'bilinear')  # (B, 128, 256. 256)
                 out = out + view_feature

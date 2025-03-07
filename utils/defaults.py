@@ -33,6 +33,7 @@ elif 'ohws68' in hostname:
 
 DEFAULTS['stage1'] = 'stage1'
 DEFAULTS['stage2'] = 'stage2'
+DEFAULTS['stage3'] = 'stage3'
 
 # turns the dictionary into a Munch object (so you can use e.g. DEFAULTS.data_root)
 DEFAULTS = munchify(DEFAULTS)

@@ -1130,7 +1130,6 @@ class DualStyleUNet_add_dwt(nn.Module):
         for cond_conv_id, (from_rgb, cond_conv) in enumerate(zip(self.from_rgbs, self.cond_convs)):
             cond_img, cond_out = from_rgb(cond_img, cond_out)
             cond_out = cond_conv(cond_out)
-            # print('Down', cond_img.shape, cond_out.shape)
             cond_list.append(cond_out)
             cond_num += 1
             if self.debug:
@@ -1154,7 +1153,6 @@ class DualStyleUNet_add_dwt(nn.Module):
             out = conv1(out, latent[:, i], noise=noise1)
             out = conv2(out, latent[:, i + 1], noise=noise2)
             skip = to_rgb(out, latent[:, i + 2], skip)
-            # print('Up', out.shape, skip.shape)
             i += 2
         image1 = self.iwt(skip)
 
@@ -1171,7 +1169,6 @@ class DualStyleUNet_add_dwt(nn.Module):
             out = conv1(out, latent[:, i], noise=noise1)
             out = conv2(out, latent[:, i + 1], noise=noise2)
             skip = to_rgb(out, latent[:, i + 2], skip)
-            # print('Up', out.shape, skip.shape)
             i += 2
         image2 = self.iwt(skip)
 
@@ -1394,21 +1391,16 @@ class DualStyleUNet_wo_dwt(nn.Module):
 
             latent = torch.cat([latent, latent2], 1)
 
-        # cond_list = self.img_unet(condition_img)
-        cond_img = condition_img#self.dwt(condition_img)
-        cond_out = self.conv_in(cond_img)  ### None
-        cond_list = [cond_out]  ### []
+        cond_img = condition_img
+        cond_out = self.conv_in(cond_img)  
+        cond_list = [cond_out]  
         cond_num = 0
         for from_rgb, cond_conv in zip(self.from_rgbs, self.cond_convs):
             cond_img, cond_out = from_rgb(cond_img, cond_out)
             cond_out = cond_conv(cond_out)
-            # print('Down', cond_img.shape, cond_out.shape)
             cond_list.append(cond_out)
             cond_num += 1
 
-        # out = self.input(latent)
-        # out = self.conv1(out, latent[:, 0], noise=noise[0])
-        # skip = self.to_rgb1(out, latent[:, 1])
         i = 0
         skip = None
         for conv1, conv2, noise1, noise2, to_rgb in zip(
@@ -1422,7 +1414,6 @@ class DualStyleUNet_wo_dwt(nn.Module):
             out = conv1(out, latent[:, i], noise=noise1)
             out = conv2(out, latent[:, i + 1], noise=noise2)
             skip = to_rgb(out, latent[:, i + 2], skip)
-            # print('Up', out.shape, skip.shape)
             i += 2
         image1 = skip
 
@@ -1439,12 +1430,10 @@ class DualStyleUNet_wo_dwt(nn.Module):
             out = conv1(out, latent[:, i], noise=noise1)
             out = conv2(out, latent[:, i + 1], noise=noise2)
             skip = to_rgb(out, latent[:, i + 2], skip)
-            # print('Up', out.shape, skip.shape)
             i += 2
         image2 = skip
 
         images = torch.cat([image1, image2], 1)
-        #print(images.shape, skip.shape)
 
         if return_latents:
             return images, latent

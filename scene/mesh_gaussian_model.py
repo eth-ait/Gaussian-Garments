@@ -48,32 +48,10 @@ class MeshGaussianModel(GaussianModel):
     def __init__(self, args : ModelParams):
         super().__init__(args.sh_degree)
 
-        print('args.subject', args.subject)
-
-        # if '/' in args.subject:
-        #     source_path = os.path.join(os.path.abspath("../datas"), '_'.join(args.subject.split('/')[:-1]) + "*")
-        #     source_path_candidates = glob.glob(source_path)
-        #     for sp in source_path_candidates:
-        #         sp = Path(sp)
-        #         if check_if_template(sp):
-        #             source_path = sp
-        #             break
-        # else:
-        #     source_path = os.path.join(os.path.abspath("../datas"), args.subject)
 
         source_path = Path(DEFAULTS.output_root) / args.subject 
-        print('source_path', source_path)
         _template = source_path / DEFAULTS.stage1 / 'template_uv.obj'
         tem_dict = read_obj(_template)
-
-        # try:
-        #     _template = os.path.join(source_path, 'stage1', 'template_uv.obj')
-        #     tem_dict = read_obj(_template)
-        # except:
-        #     source_path = str(source_path).replace("Outer", "Template") if args.garment_type == 'outer' else str(source_path).replace("Inner", "Template")
-        #     source_path = glob.glob(source_path.split('_Take')[0]+"_Take*")[0]
-        #     _template = os.path.join(source_path, f'{args.garment_type}_uv.obj')
-        #     tem_dict = read_obj(_template)
 
         pc_path = source_path / DEFAULTS.stage1 / 'point_cloud.ply'
         dense_pc = o3d.io.read_point_cloud(pc_path)
@@ -95,17 +73,6 @@ class MeshGaussianModel(GaussianModel):
 
         # init mesh
         self.mesh = MeshModel(tem_dict['vertices'], tem_dict['faces'])
-
-        # load 4ddress data and body mesh
-        # if len(args.gender):
-        #     self.pose_list, _ = load_4DDress_smplx(os.path.join(args.host_root, args.subject))
-        #     # load smplx
-        #     _npz = os.path.join(args.host_root, f"smplx/SMPLX_{args.gender.upper()}.npz")
-        #     self.smplx_model = smplx.create(model_path=_npz, model_type='smplx', gender=args.gender.lower(), num_betas=10, use_pca=True, num_pca_comps=12)
-        #     # # get canonical template (at origin)
-        #     # self.cano_vertices, self.blend_weights, self.nb_idx = prepare_lbs(self.smplx_model, tmp_pose, tem_dict['vertices']-tmp_pose['transl'], unpose=True)
-        # get hand mask
-        # _hand = os.path.join(args.host_root, f"smplx/smplx_vert_segmentation.json")
         _hand = Path(DEFAULTS.aux_root) / "smplx" / "smplx_vert_segmentation.json"
         hand_verts = json.load(open(_hand, 'r'))
         self.hand_list = np.array([v for k, verts in hand_verts.items() for v in verts if 'hand' in k.lower()])
@@ -119,16 +86,6 @@ class MeshGaussianModel(GaussianModel):
         self.neighbor_indices, self.neighbor_weight, self.neighbor_dist = None, None, None
         self.prev_gv_offset, self.gv_neighbor_weight = None, None
         self.template = tem_dict
-
-    # def __init__(self, _path: str):
-    #     super().__init__(3)
-    #     self.mesh_list = sorted(glob.glob(os.path.join(_path, "meshes/frame_*.obj")), key=lambda x: int(x[:-4].split('_')[-1]))
-    #     tmp_mesh = trimesh.load(self.mesh_list[0])
-    #     self.mesh = MeshModel(np.array(tmp_mesh.vertices, dtype=np.float32), tmp_mesh.faces)
-        
-    #     _local_ply = glob.glob(os.path.join(_path,"point_cloud/frame_*/local_point_cloud.ply"))[0]
-    #     self.load_ply(_local_ply)
-    #     self.mesh.v.requires_grad = False
 
     def update_face_coor(self):
         # position
@@ -147,11 +104,6 @@ class MeshGaussianModel(GaussianModel):
 
     @property
     def get_scaling(self):
-
-        # if hasattr(self, "remembered_scaling") and self.remembered_scaling is not None:
-        #     return self.remembered_scaling
-        
-
         if hasattr(self, "face_scaling_remembered") and self.face_scaling_remembered is not None:
             scaling = self.scaling_activation(self._scaling)
             scaling = scaling * self.face_scaling_remembered[self.binding]
@@ -159,13 +111,6 @@ class MeshGaussianModel(GaussianModel):
         
         scaling = self.scaling_activation(self._scaling)
         scaling = scaling * self.face_scaling[self.binding]
-
-        # scaling = scaling / 10
-
-        # print('self._scaling', self._scaling.shape)
-        # print('scaling', scaling.shape)
-        # print('self.face_scaling', self.face_scaling.shape)
-        # print('self.binding', self.binding.shape)
 
         return scaling
     

@@ -164,9 +164,6 @@ def main():
         n_target = len(list(meshes_dir.glob('*.obj')))
         n_source = len(list(smplx_dir.glob('*.pkl')))
 
-        print('meshes_dir', meshes_dir)
-        print('smplx_dir', smplx_dir)
-
         print(f"n_target: {n_target}, n_source: {n_source}")
         if n_target == n_source:
             print('already registered')

@@ -45,11 +45,12 @@ class AvatarDataloader(Dataset):
         self.valid_cameras = []
 
         # locate path in servers
-        _seq = os.path.join(DEFAULTS.data_root, args.subject)
-        # args.subject_out = os.path.join(args.host_root, 'Registration', args.subject_out)
+        # _seq = Path(DEFAULTS.data_root) / args.subject
+        output_root = Path(DEFAULTS.output_root) / args.subject_out
+
         self.device = 'cuda'
-        self.subject = _seq
-        self.subject_out = args.subject_out 
+        self.data_dir = Path(DEFAULTS.data_root) / args.subject
+        self.output_dir = args.subject_out 
         self.fg_label = args.garment_type
         self.bg = np.array([1,1,1]) if args.white_background else np.array([0, 0, 0])
         self.random_bg = args.random_bg
@@ -59,45 +60,61 @@ class AvatarDataloader(Dataset):
         self.texture_size = args.texture_size
         self.texture_margin = args.texture_margin
 
-        # load template mesh (with UV info)
-        _template = glob.glob("../datas/{}/{}_uv.obj".format(args.subject.split('/')[0]+'*', args.garment_type))[0]
-        self.template = read_obj(os.path.join(_template))
+        print('self.subject', self.data_dir)
+        print('self.subject_out', self.output_dir)
 
+        # stage2_path = Path(DEFAULTS.output_root) / args.subject_out
 
-        # find takes where registration results exist
-        if "*" in _seq:
-            _regs = sorted(glob.glob(os.path.join(args.subject_out, "*/meshes")), key=lambda x: int(x[:-7].split('take')[-1]))
-            if args.eval: seq_names = [s.split('/')[-2] for s in _regs][1:]
-            else: seq_names = [s.split('/')[-2] for s in _regs]
+        # # load template mesh (with UV info)
+        # glob_str = "../datas/{}/{}_uv.obj".format(args.subject.split('/')[0]+'*', args.garment_type)
+        # print('glob_str', glob_str)
+        # # assert False
+        # _template = glob.glob(glob_str)[0]
+        # # _template = glob.glob("../datas/{}/{}_uv.obj".format(args.subject.split('/')[0]+'*', args.garment_type))[0]
 
-            _seqs = [_seq.replace("*",n.split('take')[-1]) for n in seq_names]
-        else:
-            seq_names = [_seq.split('/')[-1].lower()]
-            _seqs = [_seq]
+        _template = output_root / DEFAULTS.stage1 / 'template_uv.obj'
+
+        self.template = read_obj(_template)
+
+        # stage2_path = output_root / DEFAULTS.stage2
+        sequence_dirs = [seq_dir for seq_dir in self.data_dir.iterdir() if seq_dir.is_dir()]
+        
+        # TODO: remove and use only `sequence_dirs``
+        # _seqs = sequence_dirs
+        # seq_names = [s.name for s in sequence_dirs]
 
         # collect info across whole dataset
         self.dataset_infos = {}
         self.frame_collection = []
-        for name, seq_path in zip(seq_names, _seqs):
-            print(f"[Localing] {seq_path}")
-            try:
-                info = {}
-                # camera info
-                cam_folders = sorted([os.path.join(seq_path, fn) for fn in os.listdir(seq_path) if '00' in fn])
-                if args.eval:
-                    info['cam_names'] = [n.split('/')[-1] for idx, n in enumerate(cam_folders) if idx % args.llffhold != 0]
-                else:
-                    info['cam_names'] = [n.split('/')[-1] for n in cam_folders]
-                info['json_path'] = os.path.join(seq_path, 'cameras.json')
-                # frame info
-                _imgs = sorted(glob.glob(os.path.join(cam_folders[0], "capture_images/*.png")))
-                info['start_frame'] = int(_imgs[0].split('/')[-1].split(".png")[0])
-                info['frame_num'] = len(_imgs)
-                # collect info
-                self.dataset_infos[name] = info
-                self.frame_collection += [(name, f, c) for f in range(info['frame_num']) for c in info['cam_names']]
-            except:
-                pass
+        for seq_path in sequence_dirs:
+            seq_name = seq_path.name
+
+            print(f"[Locating] {seq_path}")
+            info = {}
+            # camera info
+            # cam_folders = sorted([seq_path / fn for fn in os.listdir(seq_path) if '00' in fn])
+            cam_folders = sorted(list(seq_path.glob('00*')))
+            # print(cam_folders)
+
+            if args.eval:
+                info['cam_names'] = [n.name for idx, n in enumerate(cam_folders) if idx % args.llffhold != 0]
+            else:
+                info['cam_names'] = [n.name for n in cam_folders]
+            info['json_path'] = os.path.join(seq_path, 'cameras.json')
+            # frame info
+
+            images_dir = cam_folders[0] / "capture_images"
+            _imgs = sorted(glob.glob(os.path.join(images_dir, "*.png")))
+            _imgs = [Path(img) for img in _imgs]
+
+            # print('_imgs[0]', _imgs[0].stem)
+            # assert False
+
+            info['start_frame'] = int(_imgs[0].stem)
+            info['frame_num'] = len(_imgs)
+            # collect info
+            self.dataset_infos[seq_name] = info
+            self.frame_collection += [(seq_name, f, c) for f in range(info['frame_num']) for c in info['cam_names']]
 
         if args.shuffle: random.shuffle(self.frame_collection)
         
@@ -155,11 +172,13 @@ class AvatarDataloader(Dataset):
         data['camera'] = self.get_cam_info(cam_params, masked_img, panelize)
 
         # load current frame mesh and bake textures
-        _mesh = os.path.join(self.subject_out, data['current_seq'], "meshes", f"frame_{data['current_frame']}.obj")
-        _body = os.path.join(self.subject.replace('*', data['current_seq'].split('take')[-1]), f"Meshes/smplx/{data['current_frame']:05d}.ply")
+        _mesh = self.output_dir / DEFAULTS.stage2 /  data['current_seq'] / "meshes" / f"frame_{data['current_frame']}.obj"
+        _body = self.data_dir / data['current_seq'] / "Meshes" / "smplx" / f"{data['current_frame']:05d}.ply"
+
+        # _mesh = os.path.join(self.output_dir, data['current_seq'], "meshes", f"frame_{data['current_frame']}.obj")
+        # _body = os.path.join(self.data_dir.replace('*', data['current_seq'].split('take')[-1]), f"Meshes/smplx/{data['current_frame']:05d}.ply")
         data['ambient'], data['normal'], data['mesh_v'] = self.get_maps(_mesh, _body)
 
-        # data['pos'] = self.get_pos_map(data['mesh_v'], pickle.load(open(_body.replace('.ply', '.pkl'), 'rb')))
         return data
 
 
@@ -193,21 +212,27 @@ class AvatarDataloader(Dataset):
         #     return np.nan, np.nan, torch.tensor(mesh['vertices'], dtype=torch.float32)
 
         # locate texture path
-        _ambient = _mesh.replace("meshes/","texture/ambient/").replace(".obj",".png")
-        _normal = _mesh.replace("meshes/","texture/normal/").replace(".obj",".png")
+        _ambient = _mesh.parents[1] / "texture" / "ambient" / f"{_mesh.stem}.png"
+        _normal = _mesh.parents[1] / "texture" / "normal" / f"{_mesh.stem}.png"
+
+
+        # _ambient = _mesh.replace("meshes/","texture/ambient/").replace(".obj",".png")
+        # _normal = _mesh.replace("meshes/","texture/normal/").replace(".obj",".png")
         if os.path.exists(_ambient) and os.path.exists(_normal): 
             ambient = np.array(Image.open(_ambient)) / 255.
             normal = np.array(Image.open(_normal)) / 255.
         else:
-            try:
-                ambient, normal = self.bake_texture(_mesh, body_path=_body, w=self.texture_size, h=self.texture_size, save=True)
-            except:
-                # copy uv info from template
-                output = copy.deepcopy(self.template)
-                assert len(output['vertices']) == len(mesh['vertices']), f"Num of Vertices mismatch, {_mesh}"
-                output['vertices'] = mesh['vertices']
-                write_obj(output, _mesh)
-                ambient, normal = self.bake_texture(_mesh, body_path=_body, w=self.texture_size, h=self.texture_size, save=True)
+            ambient, normal = self.bake_texture(_mesh, body_path=_body, w=self.texture_size, h=self.texture_size, save=True)
+            # TODO: why try???
+            # try:
+            #     ambient, normal = self.bake_texture(_mesh, body_path=_body, w=self.texture_size, h=self.texture_size, save=True)
+            # except:
+            #     # copy uv info from template
+            #     output = copy.deepcopy(self.template)
+            #     assert len(output['vertices']) == len(mesh['vertices']), f"Num of Vertices mismatch, {_mesh}"
+            #     output['vertices'] = mesh['vertices']
+            #     write_obj(output, _mesh)
+            #     ambient, normal = self.bake_texture(_mesh, body_path=_body, w=self.texture_size, h=self.texture_size, save=True)
         ambient = torch.tensor(ambient, dtype=torch.float32).unsqueeze(0)
         normal = torch.tensor(normal, dtype=torch.float32).permute(2,0,1)
         mesh_v = torch.tensor(mesh['vertices'], dtype=torch.float32)
@@ -226,11 +251,13 @@ class AvatarDataloader(Dataset):
 
         # load mesh
         if os.path.exists(body_path):
+            # TODO: are there faulty body meshes?
+            # bpy.ops.wm.ply_import(filepath=str(body_path))
             try:
-                bpy.ops.wm.ply_import(filepath=body_path)
+                bpy.ops.wm.ply_import(filepath=str(body_path))
             except:
                 print(body_path)
-        bpy.ops.wm.obj_import(filepath=mesh_path)
+        bpy.ops.wm.obj_import(filepath=str(mesh_path))
         mesh = bpy.data.objects[-1]
 
         # init ambient occlusion material && texture
@@ -280,13 +307,13 @@ class AvatarDataloader(Dataset):
             Image.fromarray(np.uint8(ambient * 255)).show()
             Image.fromarray(np.uint8(normal * 255)).show()
         if save:
-            _ambient = mesh_path.replace("meshes/","texture/ambient/")
-            _normal = mesh_path.replace("meshes/","texture/normal/")
+            _ambient = mesh_path.parents[1] / "texture" / "ambient" / f"{mesh_path.stem}.png"
+            _normal = mesh_path.parents[1] / "texture" / "normal" / f"{mesh_path.stem}.png"
             os.makedirs(os.path.dirname(_ambient), exist_ok=True)
             os.makedirs(os.path.dirname(_normal), exist_ok=True)
 
-            Image.fromarray(np.uint8(ambient * 255)).save(_ambient.replace(".obj",".png"))
-            Image.fromarray(np.uint8(normal * 255)).save(_normal.replace(".obj",".png"))
+            Image.fromarray(np.uint8(ambient * 255)).save(_ambient)
+            Image.fromarray(np.uint8(normal * 255)).save(_normal)
 
         return ambient, normal
 

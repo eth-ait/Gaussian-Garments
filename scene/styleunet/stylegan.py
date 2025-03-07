@@ -56,7 +56,6 @@ def dwt_init(x):
 def iwt_init(x):
     r = 2
     in_batch, in_channel, in_height, in_width = x.size()
-    # print([in_batch, in_channel, in_height, in_width])
     out_batch, out_channel, out_height, out_width = (
         in_batch,
         int(in_channel / (r ** 2)),

@@ -72,6 +72,7 @@ def ait_render(viewer, v, f, cam, vb=None, fb=None):
     return torch.tensor(image)
 
 def logger(loss, iteration, max_iter):
+    # TODO: what's acc and wry catch exception?
     global acc
     try:
         acc = {f'AVG_{k}': (acc[f'AVG_{k}']*(iteration-1)+v) / iteration for k, v in loss.items()}
@@ -130,6 +131,7 @@ if __name__ == "__main__":
     parser.add_argument('-seq', '--sequence', type=str, required=True, default='')
 
     parser.add_argument("--first_frame_iterations", type=int, default=10000)
+    parser.add_argument("--first_frame_iterations_cross", type=int, default=15000)
     parser.add_argument("--other_frame_iterations", type=int, default=5000)
     parser.add_argument("--collision_iteration", type=int, default=2000)
     parser.add_argument("--ff_collision_iteration", type=int, default=2000)
@@ -148,7 +150,7 @@ if __name__ == "__main__":
     args.is_template_seq = (args.template_seq == "")
 
     if not args.is_template_seq:
-        args.first_frame_iterations = 15000
+        args.first_frame_iterations = args.first_frame_iterations_cross
         args.cross_from = Path(DEFAULTS.output_root) / args.subject_out / DEFAULTS.stage2 / args.template_seq
 
     

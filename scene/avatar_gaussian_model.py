@@ -11,6 +11,7 @@
 
 import os
 import glob
+from pathlib import Path
 import trimesh
 import torch
 from torch import nn
@@ -29,6 +30,7 @@ from argparse import ArgumentParser
 from scene.mesh_model import MeshModel
 from scene.gaussian_model import GaussianModel
 from scene.mesh_gaussian_model import MeshGaussianModel
+from utils.defaults import DEFAULTS
 from utils.sh_utils import RGB2SH
 from utils.system_utils import mkdir_p
 from utils.graphics_utils import BasicPointCloud
@@ -44,16 +46,23 @@ class AvatarGaussianModel(MeshGaussianModel):
         super(MeshGaussianModel, self).__init__(args.sh_degree)
 
         # locate template
-        colmap_path = "../datas"
-        _tmp = os.path.join(colmap_path, args.subject.split('/')[0]+"*", f"{args.garment_type}_uv.obj")
-        tem_dict = read_obj(glob.glob(_tmp)[0])
+        output_root = Path(DEFAULTS.output_root) / args.subject_out
+        _template = output_root / DEFAULTS.stage1 / 'template_uv.obj'
+        tem_dict = read_obj(_template)
 
-        print('tem_dict', tem_dict.keys())
-        _take = 'take'+glob.glob(_tmp)[0].split("_Take")[-1].split('/')[0]
+        stage2_path = output_root / DEFAULTS.stage2
+        sequence_dir = sorted([d for d in stage2_path.iterdir() if d.is_dir()])[0]
+        ply_glob = sequence_dir / 'point_cloud' / 'frame_*'
+        _ply = glob.glob(str(ply_glob))[0]
 
-        globstr_ply = os.path.join(args.subject_out, _take, 'point_cloud/frame_*/')
+
+        # print('sequence_dir', sequence_dir)
+        # print('tem_dict', tem_dict.keys())
+        # _take = 'take'+glob.glob(_template)[0].split("_Take")[-1].split('/')[0]
+
+        # globstr_ply = os.path.join(args.subject_out, _take, 'point_cloud/frame_*/')
         
-        _ply = glob.glob(globstr_ply)[0]
+        # _ply = glob.glob(globstr_ply)[0]
         # init mesh
         self.mesh = MeshModel(tem_dict['vertices'], tem_dict['faces'])
 
@@ -63,8 +72,8 @@ class AvatarGaussianModel(MeshGaussianModel):
         print('bind_map', bind_map.shape)
         print('img', img.shape)
 
-        plt.imshow(img/255)
-        plt.show()
+        # plt.imshow(img/255)
+        # plt.show()
         # Image.fromarray(img.astype(np.uint8)).save(os.path.join(args.subject_out, "face_binding.png"))
 
         # init uv bindings
@@ -117,6 +126,7 @@ class AvatarGaussianModel(MeshGaussianModel):
         features_dc[:, 1, 0] = np.asarray(local_pc.elements[0]["f_dc_1"])
         features_dc[:, 2, 0] = np.asarray(local_pc.elements[0]["f_dc_2"])
 
+        # why catch exception?
         try:
             extra_f_names = [p.name for p in local_pc.elements[0].properties if p.name.startswith("f_rest_")]
             extra_f_names = sorted(extra_f_names, key = lambda x: int(x.split('_')[-1]))

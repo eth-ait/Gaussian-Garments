@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import torch
 import socket
 import numpy as np
@@ -35,6 +36,7 @@ def rm_dimension(data: dict):
             data[k] = v[0]
 
 def logger(loss, bar, iteration):
+    # TODO: what's acc and wry catch exception?
     global acc
     try:
         acc = {f'AVG_{k}': (acc[f'AVG_{k}']*(iteration-1)+v) / iteration for k, v in loss.items()}
@@ -49,8 +51,12 @@ if __name__ == "__main__":
     parser = ArgumentParser(description="Training script parameters")
     op = OptimizationParams(parser)
     pp = PipelineParams(parser)
-    parser.add_argument('-s', '--source_path', type=str, required=True) # path to 4ddress camera.json folder
-    parser.add_argument('-m', '--model_path', type=str, required=True) # path to optimized results folder (where 'meshes' folder should exists)
+    # parser.add_argument('-s', '--source_path', type=str, required=True) # path to 4ddress camera.json folder
+    # parser.add_argument('-m', '--model_path', type=str, required=True) # path to optimized results folder (where 'meshes' folder should exists)
+
+    parser.add_argument('-s', '--subject', type=str, required=True, default='')
+    parser.add_argument('-m', '--subject_out', type=str, default='')
+    
     parser.add_argument('-g', '--garment_type', type=str, required=True) # garment label
     parser.add_argument('--ckpt_path', type=str, default='') 
     parser.add_argument('--name', type=str, default='avatar') 
@@ -67,21 +73,21 @@ if __name__ == "__main__":
     parser.add_argument("--shuffle", action="store_true")
     parser.add_argument("--random_bg", action="store_true")
     parser.add_argument("--blur_mask", action="store_true")
-    parser.add_argument("--erode_mask", action="store_true")
-    parser.add_argument("--add_position", action="store_true")
+    parser.add_argument("--erode_mask", action="store_true") # TODO: always false?
     parser.add_argument('--eval', action='store_true')
-    parser.add_argument('--ssd', action='store_true')
     parser.add_argument('--no_xyz', action='store_true') # is it for ablation study?
     parser.add_argument('--llffhold', type=int, default=12)
     args = parser.parse_args(sys.argv[1:])
 
+    if len(args.subject_out) == 0:
+        args.subject_out = args.subject
+    args.subject_out = Path(DEFAULTS.output_root) / args.subject_out
 
-    args.host_root = DEFAULTS.dataset_root
+    # store_path = DEFAULTS.registration_root
+    # args.model_path = os.path.join(DEFAULTS.output_root, args.model_path)
+    # args.ckpt_path = os.path.join(DEFAULTS.output_root, args.ckpt_path)
 
-
-    store_path = DEFAULTS.registration_root
-    args.model_path = os.path.join(store_path, args.model_path)
-    args.ckpt_path = os.path.join(store_path, args.ckpt_path)
+    stage3_path = DEFAULTS.output_root / args.subject_out / DEFAULTS.stage3
 
 
     args.debug = False
@@ -90,6 +96,7 @@ if __name__ == "__main__":
     args.shuffle = True
     args.random_bg = True
     args.blur_mask = True
+
     # # Initialize system state (RNG)
     torch.manual_seed(31359)
     np.random.seed(31359)
@@ -101,7 +108,6 @@ if __name__ == "__main__":
     ############ DEBUG ############
 
     # build components
-    # dataloader = AvatarDataloader(args)
     dataloader = torch.utils.data.DataLoader(AvatarDataloader(args), batch_size=1, 
                                              shuffle=args.shuffle, num_workers=8)
     gaussians = AvatarGaussianModel(args)
@@ -139,14 +145,13 @@ if __name__ == "__main__":
             loss_dict['ssim'] = 1.0 - ssim(image, gt_image, mask) * args.lambda_dssim
             loss_dict['xyz'] = F.relu(gaussians.local_xyz.norm(dim=1) - args.threshold_xyz).mean() * args.lambda_xyz
             loss_dict['scale']  = F.relu(gaussians.scaling_activation(gaussians._scaling) - args.threshold_scale).norm(dim=1).mean() * args.lambda_scale
-            # loss_dict['shs'] =  l1_loss(gaussians.get_features, gaussians.prev_feature) * args.lambda_shs
             _opacity = gaussians.get_opacity
             loss_dict['opacity'] = F.relu(args.threshold_opacity - _opacity).mean() * args.lambda_opacity
-            # loss_dict['opacity'] = (-_opacity*torch.log(_opacity+1e-10) - (1-_opacity)*torch.log(1-_opacity+1e-10)).mean() * args.lambda_opacity
             loss = 0
             for k, v in loss_dict.items():
                 loss = loss + v
             loss.backward()
+
 
             with torch.no_grad():
                 # Optimizer step
@@ -158,7 +163,7 @@ if __name__ == "__main__":
             if iter > 0 and iter % args.save_iterations == 0:
                 # avatar_net.post_each_frame()
                 print("\n[Epoch {} Frame {}] Saving Checkpoint".format(epoch, iter))
-                avatar_net.save_ckpt(os.path.join(args.model_path, args.name), epoch)
+                avatar_net.save_ckpt(stage3_path, epoch)
 
             ############ DEBUG ############
             with torch.no_grad():
@@ -201,15 +206,16 @@ if __name__ == "__main__":
                     container = torch.cat([panelize, texture, test_gt_img, test_img, diff], axis=-1)
                     container = container.permute(1,2,0)*255
 
-                    _render = os.path.join(args.model_path, f'{args.name}/debug_renders')
+                    _render = stage3_path / "debug_renders" 
                     container = Image.fromarray(np.array(container, dtype=np.byte), "RGB")
                     os.makedirs(_render, exist_ok=True)
-                    container.save(os.path.join(_render, f"{test_id:04d}_epoch{epoch}_{frame_data['current_seq']}_frame{frame_data['current_frame']}.png"))
+                    render_path = _render / f"ep{epoch:03d}_iter{iter:06d}_{frame_data['current_seq']}_frame{frame_data['current_frame']:04d}.png"
+                    container.save(render_path)
                     test_id += 1
             ############ DEBUG ############
 
         progress_bar.close()
-        avatar_net.save_ckpt(os.path.join(args.model_path, args.name), epoch, name=f"epoch{epoch}")
+        avatar_net.save_ckpt(stage3_path, epoch, name=f"epoch{epoch}")
 
 
     # All done

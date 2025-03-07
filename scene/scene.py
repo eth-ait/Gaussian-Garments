@@ -125,10 +125,14 @@ class Scene:
             self.gaussians.mesh.init_body(body)
 
             print("Loading Mesh at frame {}".format(self.current_frame-1))
-            try:
-                previous = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-2}.obj')
-            except:
-                previous = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-1}.obj')
+            previous_path = stage2_path / 'meshes' / f'frame_{self.current_frame-2}.obj'
+            if not previous_path.exists():
+                previous_path = stage2_path / 'meshes' / f'frame_{self.current_frame-1}.obj'
+            previous = read_obj(previous_path)
+            # try:
+            #     previous = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-2}.obj')
+            # except:
+            #     previous = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-1}.obj')
             current = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-1}.obj')
             self.gaussians.mesh.momentum_update(current['vertices'], current['faces'])
 
