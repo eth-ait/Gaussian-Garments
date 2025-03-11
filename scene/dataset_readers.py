@@ -50,7 +50,7 @@ class CameraInfo():
         self.mask = mask
 
 class Dataloader():
-    def __init__(self, args: ModelParams, load_iteration=None, body=False) -> None:
+    def __init__(self, args: ModelParams) -> None:
         self.subject_out = args.subject_out
         # self.fg_label = ['skin', 'hair', 'glove', 'shoe'] if body else args.garment_type
         # self.panelize_labels = ['background', 'skin', 'hair', 'glove', 'shoe'] if body else ['background', args.garment_type]

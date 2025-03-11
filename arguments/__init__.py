@@ -50,7 +50,7 @@ class ModelParams(ParamGroup):
     def __init__(self, parser, sentinel=False):
         self.sh_degree = 3
         self._resolution = -1
-        self._white_background = False # TODO: always False
+        self._white_background = False
         self.data_device = "cuda"
         self.eval = False # TODO: False in stage 1, True in stage 2
         self.llffhold = 12

@@ -10,14 +10,6 @@ from pytorch3d.structures import Meshes
 from pytorch3d.renderer import PerspectiveCameras, RasterizationSettings, MeshRasterizer
 
 
-# TODO: remove reliance on these global variables
-# set 4DDress RGB cameras
-# camera_ids = ['0000', '0001', '0004', '0005', '0008', '0009', '0012', '0013', '0016', '0017',
-#                '0020', '0021', '0024', '0025', '0028', '0029', '0032', '0033', '0036', '0037',
-#                '0040', '0041', '0044', '0045', '0048', '0049', '0052', '0053', '0056', '0057',
-#                '0060', '0061', '0064', '0065', '0068', '0069', '0072', '0073', '0076', '0077',
-#                '0080', '0081', '0084', '0085', '0088', '0089', '0092', '0093']
-
 def render_label_colors(label):
     # init white color as background
     colors = np.ones((label.shape[0], 3)) * 255

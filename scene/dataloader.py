@@ -26,18 +26,14 @@ class AvatarDataloader(Dataset):
         self.valid_cameras = []
 
         # locate path in servers
-        # _seq = Path(DEFAULTS.data_root) / args.subject
         output_root = Path(DEFAULTS.output_root) / args.subject_out
 
         self.device = 'cuda'
         self.data_dir = Path(DEFAULTS.data_root) / args.subject
         self.output_dir = args.subject_out 
-        # self.fg_label = args.garment_type
         self.bg = np.array([1,1,1]) if args.white_background else np.array([0, 0, 0])
         self.random_bg = args.random_bg
         self.blur_mask = args.blur_mask
-        self.erode_mask = args.erode_mask
-        # self.panelize_labels = ['background', args.garment_type]
         self.texture_size = args.texture_size
         self.texture_margin = args.texture_margin
 
@@ -57,7 +53,6 @@ class AvatarDataloader(Dataset):
             print(f"[Locating] {seq_path}")
             info = {}
             # camera info
-            # cam_folders = sorted([seq_path / fn for fn in os.listdir(seq_path) if '00' in fn])
             cam_folders = sorted(list(seq_path.glob('00*')))
 
             if args.eval:
