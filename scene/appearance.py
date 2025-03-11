@@ -27,7 +27,6 @@ class Embedder(nn.Module):
         self.out_dim = out_dim
 
     def forward(self, inputs):
-        # print(f"input device: {inputs.device}, freq_bands device: {self.freq_bands.device}")
         self.freq_bands = self.freq_bands.type_as(inputs)
         outputs = []
         if self.kwargs['include_input']:

@@ -41,14 +41,6 @@ class AvatarGaussianModel(MeshGaussianModel):
         ply_glob = sequence_dir / 'point_cloud' / 'frame_*'
         _ply = glob.glob(str(ply_glob))[0]
 
-
-        # print('sequence_dir', sequence_dir)
-        # print('tem_dict', tem_dict.keys())
-        # _take = 'take'+glob.glob(_template)[0].split("_Take")[-1].split('/')[0]
-
-        # globstr_ply = os.path.join(args.subject_out, _take, 'point_cloud/frame_*/')
-        
-        # _ply = glob.glob(globstr_ply)[0]
         # init mesh
         self.mesh = MeshModel(tem_dict['vertices'], tem_dict['faces'])
 

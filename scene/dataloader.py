@@ -23,10 +23,6 @@ class AvatarDataloader(Dataset):
         args.subject_out: path to the registered outputs, e.g.: 00190_upper
         # args.garment_type: one of ['outer'/'upper'/'lower']
         '''
-        # 4DDress dataset pre-defined labels
-        self.SURFACE_LABEL = ['full_body', 'skin', 'upper', 'lower', 'hair', 'glove', 'shoe', 'outer', 'background']
-        GRAY_VALUE = np.array([255, 128, 98, 158, 188, 218, 38, 68, 255])
-        self.MaskLabel = dict(zip(self.SURFACE_LABEL, GRAY_VALUE))
         self.valid_cameras = []
 
         # locate path in servers

@@ -27,17 +27,9 @@ class AvatarDataloader(Dataloader):
         self.device = 'cuda'
         self.subject = args.subject
         self.subject_out = args.subject_out 
-        # self.colmap_path = "../datas"
-        # self.fg_label = args.garment_type
-        # self.panelize_labels = ['background', args.garment_type]
         self.texture_size = args.texture_size
         self.texture_margin = args.texture_margin
 
-        # 4DDress dataset pre-defined labels
-        self.SURFACE_LABEL = ['full_body', 'skin', 'upper', 'lower', 'hair', 'glove', 'shoe', 'outer', 'background']
-        GRAY_VALUE = np.array([255, 128, 98, 158, 188, 218, 38, 68, 255])
-        self.MaskLabel = dict(zip(self.SURFACE_LABEL, GRAY_VALUE))
-    
         # locate multiple sequence
         _seq = f"{DEFAULTS.dataset_root}/{args.subject}"
         _regs = glob.glob(os.path.join(args.subject_out, "*/meshes"))
@@ -82,7 +74,7 @@ class AvatarDataloader(Dataloader):
 
         # process all cameras
         for idx, _cam in enumerate(self.cam_paths):
-            print(f"[4DDress] Reading frame {frame_idx} camera {idx+1}/{self.cam_num} ")
+            print(f"Reading frame {frame_idx} camera {idx+1}/{self.cam_num} ")
 
             _img = os.path.join(_cam,"capture_images",f"{frame_idx:05d}.png")
             # if os.path.exists(os.path.join(_cam,"group_labels",f"{frame_idx:05d}.png")):

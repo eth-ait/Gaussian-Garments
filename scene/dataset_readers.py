@@ -76,11 +76,6 @@ class Dataloader():
         # smplx info
         self.smplx_list = sorted(glob.glob(os.path.join(seq_path, "smplx/*.ply")))
 
-        # 4DDress dataset pre-defined labels
-        self.SURFACE_LABEL = ['full_body', 'skin', 'upper', 'lower', 'hair', 'glove', 'shoe', 'outer', 'background']
-        GRAY_VALUE = np.array([255, 128, 98, 158, 188, 218, 38, 68, 255])
-        self.MaskLabel = dict(zip(self.SURFACE_LABEL, GRAY_VALUE))
-
     def __len__(self,):
         return self.frame_num
     
@@ -91,7 +86,7 @@ class Dataloader():
 
         # process all cameras
         for idx, _cam in enumerate(self.cam_paths):
-            print(f"[4DDress] Reading frame {frame_idx} camera {idx+1}/{self.cam_num} ")
+            print(f"Reading frame {frame_idx} camera {idx+1}/{self.cam_num} ")
 
             _img = os.path.join(_cam,"capture_images",f"{frame_idx:05d}.png")
             _lab = os.path.join(_cam,"capture_labels",f"{frame_idx:05d}.png")
@@ -102,9 +97,6 @@ class Dataloader():
             width, height = masked_img.shape[1], masked_img.shape[0]
 
             cam_name = _cam.split('/')[-1]
-
-            # image = Image.open(_img)
-            # width, height = image.size
 
             # get camera intrinsic and extrinsic matrices
             intrinsic = np.asarray(self.camera_params[cam_name]["intrinsics"])
@@ -150,29 +142,4 @@ class Dataloader():
     
     
 
-
-# read 4DDress Mesh
-def read4DDressMesh(mesh_path, atlas_path):
-    # load scan mesh and atlas data, and cloth mesh
-    mesh_data, atlas_data = pickle.load(open(mesh_path, "rb")), pickle.load(open(atlas_path, "rb"))
-    # load scan uv_coordinate and uv_image as TextureVisuals
-    uv_image = Image.fromarray(atlas_data).transpose(method=Image.Transpose.FLIP_TOP_BOTTOM).convert("RGB")
-    texture_visual = trimesh.visual.texture.TextureVisuals(uv=mesh_data['uvs'], image=uv_image)
-    # pack scan data as trimesh
-    scan_trimesh = trimesh.Trimesh(
-        vertices=mesh_data['vertices'],
-        faces=mesh_data['faces'],
-        vertex_normals=mesh_data['normals'],
-        visual=texture_visual,
-        process=False,
-    )
-    # pack scan data as mesh
-    scan_mesh = {
-        'vertices': scan_trimesh.vertices.copy(),
-        'faces': scan_trimesh.faces,
-        'edges': scan_trimesh.edges,
-        'colors': scan_trimesh.visual.to_color().vertex_colors,
-        'normals': scan_trimesh.vertex_normals,
-    }
-    return scan_mesh, scan_trimesh
 

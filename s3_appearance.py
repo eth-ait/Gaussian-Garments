@@ -157,11 +157,10 @@ if __name__ == "__main__":
                 logger(loss_dict, progress_bar, iter)
             
             if iter > 0 and iter % args.save_iterations == 0:
-                # avatar_net.post_each_frame()
                 print("\n[Epoch {} Frame {}] Saving Checkpoint".format(epoch, iter))
                 avatar_net.save_ckpt(stage3_path, epoch)
 
-            ############ DEBUG ############
+            ############ SAVE RENDERS ############
             with torch.no_grad():
                 if iter % int(args.save_iterations / 5) == 0:
                     # pred gaussian map
@@ -208,7 +207,7 @@ if __name__ == "__main__":
                     render_path = _render / f"ep{epoch:03d}_iter{iter:06d}_{frame_data['current_seq']}_frame{frame_data['current_frame']:04d}.png"
                     container.save(render_path)
                     test_id += 1
-            ############ DEBUG ############
+            ############ SAVE RENDERS ############
 
         progress_bar.close()
         avatar_net.save_ckpt(stage3_path, epoch, name=f"epoch{epoch}")

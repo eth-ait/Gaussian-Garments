@@ -267,7 +267,6 @@ if __name__ == "__main__":
             with torch.no_grad():
                 # prune and densify
 
-                # print(f'is_first_frame: {is_first_frame}, use_body: {use_body}, args.is_template_seq: {args.is_template_seq}')
                 if is_first_frame and not use_body and args.is_template_seq:
                     # Keep track of max radii in image-space for pruning
                     gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])

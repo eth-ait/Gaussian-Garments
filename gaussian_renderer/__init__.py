@@ -88,8 +88,6 @@ def render(viewpoint_camera, pc : Union[GaussianModel, MeshGaussianModel], pipe,
     else:
         colors_precomp = override_color
 
-    # print('scales', scales.shape)
-
     # only render visible gaussians
     if vis_mask is not None:
         means3D = means3D[vis_mask] if means3D is not None else means3D
