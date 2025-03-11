@@ -69,21 +69,11 @@ class AvatarGaussianModel(MeshGaussianModel):
         # Compute pixel-wise bound face indices
         bind_map, img = self.get_texture_binding(tem_dict['uvs'], tem_dict['texture_faces'], res=args.texture_size)
 
-        print('bind_map', bind_map.shape)
-        print('img', img.shape)
-
-        # plt.imshow(img/255)
-        # plt.show()
-        # Image.fromarray(img.astype(np.uint8)).save(os.path.join(args.subject_out, "face_binding.png"))
-
         # init uv bindings
         self.gaussian_mask = bind_map > -1 # uv map with the binded face ids for each pixel
         self.binding = torch.tensor(bind_map[self.gaussian_mask], dtype=int).cuda()
         # others
         self.num_gs = len(self.binding)
-
-
-        print('self.num_gs', self.num_gs)
         
         self.gs_u, self.gs_v = np.where(self.gaussian_mask)
         # compute barycentric coor from uv
