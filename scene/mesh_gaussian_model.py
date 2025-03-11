@@ -49,7 +49,7 @@ class MeshGaussianModel(GaussianModel):
         super().__init__(args.sh_degree)
 
 
-        source_path = Path(DEFAULTS.output_root) / args.subject 
+        source_path = Path(DEFAULTS.output_root) / args.subject_out 
         _template = source_path / DEFAULTS.stage1 / 'template_uv.obj'
         tem_dict = read_obj(_template)
 

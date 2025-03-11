@@ -170,17 +170,12 @@ class crossScene(Scene):
         stage1_path = Path(self.subject_out) / DEFAULTS.stage1
         stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence
         points3D_path = stage1_path / "sparse" / "points3D.bin"
-        print('points3D_path', points3D_path)
-
         source = self.binary_to_o3d(points3D_path)
 
 
         source_root = Path(DEFAULTS.data_root) / self.args.subject / self.args.sequence
         target_root = stage2_path / 'colmap'
         remove_folder = not os.path.exists(target_root)
-        
-        print('source_root', source_root)
-        print('target_root', target_root)
 
         PrepareDataset(source_root, target_root, self.args.camera)
         COLMAP_recon(target_root, skip_dense=True)
