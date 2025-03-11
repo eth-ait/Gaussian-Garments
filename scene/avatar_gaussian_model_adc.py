@@ -1,492 +1,419 @@
-#
-# Copyright (C) 2023, Inria
-# GRAPHDECO research group, https://team.inria.fr/graphdeco
-# All rights reserved.
-#
-# This software is free for non-commercial, research and evaluation use 
-# under the terms of the LICENSE.md file.
-#
-# For inquiries contact  george.drettakis@inria.fr
-#
+# #
+# # Copyright (C) 2023, Inria
+# # GRAPHDECO research group, https://team.inria.fr/graphdeco
+# # All rights reserved.
+# #
+# # This software is free for non-commercial, research and evaluation use 
+# # under the terms of the LICENSE.md file.
+# #
+# # For inquiries contact  george.drettakis@inria.fr
+# #
 
-import os
-import glob
-import trimesh
-import torch
-from torch import nn
-import numpy as np
-from plyfile import PlyData, PlyElement
-from simple_knn._C import distCUDA2
-from arguments import ModelParams
-import pickle
-import open3d as o3d
-from PIL import Image
-from scipy.interpolate import griddata
-from sklearn import neighbors
-from roma import rotmat_to_unitquat, quat_xyzw_to_wxyz, quat_wxyz_to_xyzw, quat_product, unitquat_to_rotmat
-from argparse import ArgumentParser
+# import os
+# import glob
+# import trimesh
+# import torch
+# from torch import nn
+# import numpy as np
+# from plyfile import PlyData, PlyElement
+# from simple_knn._C import distCUDA2
+# from arguments import ModelParams
+# import pickle
+# import open3d as o3d
+# from PIL import Image
+# from scipy.interpolate import griddata
+# from sklearn import neighbors
+# from roma import rotmat_to_unitquat, quat_xyzw_to_wxyz, quat_wxyz_to_xyzw, quat_product, unitquat_to_rotmat
+# from argparse import ArgumentParser
 
-from scene.mesh_model import MeshModel
-from scene.gaussian_model import GaussianModel
-from scene.mesh_gaussian_model import MeshGaussianModel
-from utils.sh_utils import RGB2SH
-from utils.system_utils import mkdir_p
-from utils.graphics_utils import BasicPointCloud
-from utils.graphics_utils import compute_face_orientation
-from utils.io_utils import read_obj, fetchPly, storePly, write_obj
-from utils.general_utils import inverse_sigmoid, get_expon_lr_func, build_rotation
-from utils.geometry_utils import barycentric_2D, FaceNormals
-import matplotlib.pyplot as plt
-from utils.adc_utils import compute_uv_coordinates, recompute_pointcloud, recompute_pointcloud_wp, sample_texture
+# from scene.mesh_model import MeshModel
+# from scene.gaussian_model import GaussianModel
+# from scene.mesh_gaussian_model import MeshGaussianModel
+# from utils.sh_utils import RGB2SH
+# from utils.system_utils import mkdir_p
+# from utils.graphics_utils import BasicPointCloud
+# from utils.graphics_utils import compute_face_orientation
+# from utils.io_utils import read_obj, fetchPly, storePly, write_obj
+# from utils.general_utils import inverse_sigmoid, get_expon_lr_func, build_rotation
+# from utils.geometry_utils import barycentric_2D, FaceNormals
+# import matplotlib.pyplot as plt
+# from utils.adc_utils import compute_uv_coordinates, recompute_pointcloud, recompute_pointcloud_wp, sample_texture
 
-class AvatarGaussianModelADC(MeshGaussianModel):
-    def __init__(self, args: ArgumentParser):
-        super(MeshGaussianModel, self).__init__(args.sh_degree)
+# TODO: remove
 
-        # locate template
-        colmap_path = "../datas"
-        _tmp = os.path.join(colmap_path, args.subject.split('/')[0]+"*", f"{args.garment_type}_uv.obj")
-        tem_dict = read_obj(glob.glob(_tmp)[0])
+# class AvatarGaussianModelADC(MeshGaussianModel):
+#     def __init__(self, args: ArgumentParser):
+#         super(MeshGaussianModel, self).__init__(args.sh_degree)
 
-        print('tem_dict', tem_dict.keys())
-        _take = 'take'+glob.glob(_tmp)[0].split("_Take")[-1].split('/')[0]
+#         # locate template
+#         colmap_path = "../datas"
+#         _tmp = os.path.join(colmap_path, args.subject.split('/')[0]+"*", f"{args.garment_type}_uv.obj")
+#         tem_dict = read_obj(glob.glob(_tmp)[0])
 
-        globstr_ply = os.path.join(args.subject_out, _take, 'point_cloud/frame_*/')
+#         print('tem_dict', tem_dict.keys())
+#         _take = 'take'+glob.glob(_tmp)[0].split("_Take")[-1].split('/')[0]
+
+#         globstr_ply = os.path.join(args.subject_out, _take, 'point_cloud/frame_*/')
         
-        _ply = glob.glob(globstr_ply)[0]
-        # init mesh
-        self.mesh = MeshModel(tem_dict['vertices'], tem_dict['faces'])
+#         _ply = glob.glob(globstr_ply)[0]
+#         # init mesh
+#         self.mesh = MeshModel(tem_dict['vertices'], tem_dict['faces'])
 
-        # Compute pixel-wise bound face indices
-        bind_map, img = self.get_texture_binding(tem_dict['uvs'], tem_dict['texture_faces'], res=args.texture_size)
+#         # Compute pixel-wise bound face indices
+#         bind_map, img = self.get_texture_binding(tem_dict['uvs'], tem_dict['texture_faces'], res=args.texture_size)
 
-        self.uvs = torch.nn.Parameter(torch.tensor(tem_dict['uvs']), requires_grad=False).cuda()
-        self.texture_faces = torch.nn.Parameter(torch.tensor(tem_dict['texture_faces']), requires_grad=False).cuda()
+#         self.uvs = torch.nn.Parameter(torch.tensor(tem_dict['uvs']), requires_grad=False).cuda()
+#         self.texture_faces = torch.nn.Parameter(torch.tensor(tem_dict['texture_faces']), requires_grad=False).cuda()
 
-        print('self.uvs', self.uvs.shape)
-        # Image.fromarray(img.astype(np.uint8)).save(os.path.join(args.subject_out, "face_binding.png"))
+#         print('self.uvs', self.uvs.shape)
+#         # Image.fromarray(img.astype(np.uint8)).save(os.path.join(args.subject_out, "face_binding.png"))
 
-        # init uv bindings
-        self.gaussian_mask = bind_map > -1 # uv map with the binded face ids for each pixel
-        self.binding = torch.tensor(bind_map[self.gaussian_mask], dtype=int).cuda()
-        self.binding_perpixel = self.binding.clone()
-        # others
-        self.num_gs = len(self.binding)
+#         # init uv bindings
+#         self.gaussian_mask = bind_map > -1 # uv map with the binded face ids for each pixel
+#         self.binding = torch.tensor(bind_map[self.gaussian_mask], dtype=int).cuda()
+#         self.binding_perpixel = self.binding.clone()
+#         # others
+#         self.num_gs = len(self.binding)
 
-        self.texture_size = args.texture_size
+#         self.texture_size = args.texture_size
 
-        self.gs_u, self.gs_v = np.where(self.gaussian_mask)
-        # compute barycentric coor from uv
-        uvs = tem_dict['uvs']
-        uvs_texture_faces = uvs[tem_dict['texture_faces']]
+#         self.gs_u, self.gs_v = np.where(self.gaussian_mask)
+#         # compute barycentric coor from uv
+#         uvs = tem_dict['uvs']
+#         uvs_texture_faces = uvs[tem_dict['texture_faces']]
 
-        texture2gid = -torch.ones((args.texture_size, args.texture_size), dtype=int)
-        texture2gid[self.gs_u, self.gs_v] = torch.arange(self.num_gs, dtype=int)
-        self.texture2gid = texture2gid.cuda()
+#         texture2gid = -torch.ones((args.texture_size, args.texture_size), dtype=int)
+#         texture2gid[self.gs_u, self.gs_v] = torch.arange(self.num_gs, dtype=int)
+#         self.texture2gid = texture2gid.cuda()
 
-        uv_triangles = tem_dict['uvs'][tem_dict['texture_faces']][self.binding.cpu()]*args.texture_size
-        uv_gs = np.array([self.gs_v, self.gs_u]).T + 0.5
-        bc = barycentric_2D(torch.tensor(uv_triangles), torch.tensor(uv_gs))
-        self.gs_bc = [torch.tensor(i, dtype=torch.float32).cuda() for i in bc]
-        self.gs_bc_perpixel = self.gs_bc
+#         uv_triangles = tem_dict['uvs'][tem_dict['texture_faces']][self.binding.cpu()]*args.texture_size
+#         uv_gs = np.array([self.gs_v, self.gs_u]).T + 0.5
+#         bc = barycentric_2D(torch.tensor(uv_triangles), torch.tensor(uv_gs))
+#         self.gs_bc = [torch.tensor(i, dtype=torch.float32).cuda() for i in bc]
+#         self.gs_bc_perpixel = self.gs_bc
 
-        # gaussians
-        self.init_gaussians(_ply)
-        self.shs = None # store combined shs feature
-        self.local_xyz = None
+#         # gaussians
+#         self.init_gaussians(_ply)
+#         self.shs = None # store combined shs feature
+#         self.local_xyz = None
 
-        self.update_gaussian_parameters(self.mesh.v, self.mesh.f, density=0.1)
+#         self.update_gaussian_parameters(self.mesh.v, self.mesh.f, density=0.1)
 
-    def init_gaussians(self, _path):
-        print("Number of points at initialisation : ", self.num_gs)
-        # load template ply in world frame
+#     def init_gaussians(self, _path):
+#         print("Number of points at initialisation : ", self.num_gs)
+#         # load template ply in world frame
 
-        world_pc_path = os.path.join(_path, "point_cloud.ply")
-        world_pc = PlyData.read(world_pc_path)
-        world_xyz = np.stack((np.asarray(world_pc.elements[0]["x"]),
-                    np.asarray(world_pc.elements[0]["y"]),
-                    np.asarray(world_pc.elements[0]["z"])),  axis=1)
+#         world_pc_path = os.path.join(_path, "point_cloud.ply")
+#         world_pc = PlyData.read(world_pc_path)
+#         world_xyz = np.stack((np.asarray(world_pc.elements[0]["x"]),
+#                     np.asarray(world_pc.elements[0]["y"]),
+#                     np.asarray(world_pc.elements[0]["z"])),  axis=1)
 
-        ####### convert UV to 3D points and get local self._xyz #######
-        self.update_face_coor()
-        gs_3d = self.get_barycentric_3d()
-        local_offset = self.get_local_offset(gs_3d)
+#         ####### convert UV to 3D points and get local self._xyz #######
+#         self.update_face_coor()
+#         gs_3d = self.get_barycentric_3d()
+#         local_offset = self.get_local_offset(gs_3d)
 
-        # find nearest neighbor in loaded ply
-        _, nb_idx = neighbors.KDTree(world_xyz).query(gs_3d.cpu().numpy())
-        nb_idx = nb_idx.reshape(-1)
+#         # find nearest neighbor in loaded ply
+#         _, nb_idx = neighbors.KDTree(world_xyz).query(gs_3d.cpu().numpy())
+#         nb_idx = nb_idx.reshape(-1)
 
-        # load template ply in local frame
-        local_pc_path = os.path.join(_path, "local_point_cloud.ply")
-        local_pc = PlyData.read(local_pc_path)
-        xyz = np.stack((np.asarray(local_pc.elements[0]["x"]),
-                        np.asarray(local_pc.elements[0]["y"]),
-                        np.asarray(local_pc.elements[0]["z"])),  axis=1)
-        opacities = np.asarray(local_pc.elements[0]["opacity"])[..., np.newaxis]
+#         # load template ply in local frame
+#         local_pc_path = os.path.join(_path, "local_point_cloud.ply")
+#         local_pc = PlyData.read(local_pc_path)
+#         xyz = np.stack((np.asarray(local_pc.elements[0]["x"]),
+#                         np.asarray(local_pc.elements[0]["y"]),
+#                         np.asarray(local_pc.elements[0]["z"])),  axis=1)
+#         opacities = np.asarray(local_pc.elements[0]["opacity"])[..., np.newaxis]
 
-        features_dc = np.zeros((xyz.shape[0], 3, 1))
-        features_dc[:, 0, 0] = np.asarray(local_pc.elements[0]["f_dc_0"])
-        features_dc[:, 1, 0] = np.asarray(local_pc.elements[0]["f_dc_1"])
-        features_dc[:, 2, 0] = np.asarray(local_pc.elements[0]["f_dc_2"])
+#         features_dc = np.zeros((xyz.shape[0], 3, 1))
+#         features_dc[:, 0, 0] = np.asarray(local_pc.elements[0]["f_dc_0"])
+#         features_dc[:, 1, 0] = np.asarray(local_pc.elements[0]["f_dc_1"])
+#         features_dc[:, 2, 0] = np.asarray(local_pc.elements[0]["f_dc_2"])
 
-        # why catch exception?
-        try:
-            extra_f_names = [p.name for p in local_pc.elements[0].properties if p.name.startswith("f_rest_")]
-            extra_f_names = sorted(extra_f_names, key = lambda x: int(x.split('_')[-1]))
-            assert len(extra_f_names)==3*(self.max_sh_degree + 1) ** 2 - 3
-            features_extra = np.zeros((xyz.shape[0], len(extra_f_names)))
-            for idx, attr_name in enumerate(extra_f_names):
-                features_extra[:, idx] = np.asarray(local_pc.elements[0][attr_name])
-            # Reshape (P,F*SH_coeffs) to (P, F, SH_coeffs except DC)
-            features_extra = features_extra.reshape((features_extra.shape[0], 3, (self.max_sh_degree + 1) ** 2 - 1))
-        except:
-            features_extra = np.zeros((xyz.shape[0], 3, (self.max_sh_degree + 1) ** 2 - 1))
+#         # why catch exception?
+#         try:
+#             extra_f_names = [p.name for p in local_pc.elements[0].properties if p.name.startswith("f_rest_")]
+#             extra_f_names = sorted(extra_f_names, key = lambda x: int(x.split('_')[-1]))
+#             assert len(extra_f_names)==3*(self.max_sh_degree + 1) ** 2 - 3
+#             features_extra = np.zeros((xyz.shape[0], len(extra_f_names)))
+#             for idx, attr_name in enumerate(extra_f_names):
+#                 features_extra[:, idx] = np.asarray(local_pc.elements[0][attr_name])
+#             # Reshape (P,F*SH_coeffs) to (P, F, SH_coeffs except DC)
+#             features_extra = features_extra.reshape((features_extra.shape[0], 3, (self.max_sh_degree + 1) ** 2 - 1))
+#         except:
+#             features_extra = np.zeros((xyz.shape[0], 3, (self.max_sh_degree + 1) ** 2 - 1))
 
-        scale_names = [p.name for p in local_pc.elements[0].properties if p.name.startswith("scale_")]
-        scale_names = sorted(scale_names, key = lambda x: int(x.split('_')[-1]))
-        scales = np.zeros((xyz.shape[0], len(scale_names)))
-        for idx, attr_name in enumerate(scale_names):
-            scales[:, idx] = np.asarray(local_pc.elements[0][attr_name])
+#         scale_names = [p.name for p in local_pc.elements[0].properties if p.name.startswith("scale_")]
+#         scale_names = sorted(scale_names, key = lambda x: int(x.split('_')[-1]))
+#         scales = np.zeros((xyz.shape[0], len(scale_names)))
+#         for idx, attr_name in enumerate(scale_names):
+#             scales[:, idx] = np.asarray(local_pc.elements[0][attr_name])
 
-        rot_names = [p.name for p in local_pc.elements[0].properties if p.name.startswith("rot")]
-        rot_names = sorted(rot_names, key = lambda x: int(x.split('_')[-1]))
-        rots = np.zeros((xyz.shape[0], len(rot_names)))
-        for idx, attr_name in enumerate(rot_names):
-            rots[:, idx] = np.asarray(local_pc.elements[0][attr_name])
+#         rot_names = [p.name for p in local_pc.elements[0].properties if p.name.startswith("rot")]
+#         rot_names = sorted(rot_names, key = lambda x: int(x.split('_')[-1]))
+#         rots = np.zeros((xyz.shape[0], len(rot_names)))
+#         for idx, attr_name in enumerate(rot_names):
+#             rots[:, idx] = np.asarray(local_pc.elements[0][attr_name])
 
-        # Initialize Gaussian parameters
-        self.active_sh_degree = self.max_sh_degree
-        self.max_radii2D = torch.zeros((self.num_gs), device="cuda")
+#         # Initialize Gaussian parameters
+#         self.active_sh_degree = self.max_sh_degree
+#         self.max_radii2D = torch.zeros((self.num_gs), device="cuda")
 
-        xyz_pt = torch.zeros_like(local_offset)
-        _xyz_texture = self.gfearures2texture(xyz_pt)
-        self._xyz_texture = nn.Parameter(_xyz_texture, requires_grad=True)
-        # self._xyz = nn.Parameter(xyz_pt, requires_grad=True)
+#         xyz_pt = torch.zeros_like(local_offset)
+#         _xyz_texture = self.gfearures2texture(xyz_pt)
+#         self._xyz_texture = nn.Parameter(_xyz_texture, requires_grad=True)
+#         # self._xyz = nn.Parameter(xyz_pt, requires_grad=True)
 
-        features_dc_pt = torch.tensor(features_dc[nb_idx], dtype=torch.float, device="cuda").transpose(1, 2).contiguous()
-        _features_dc_texture = self.gfearures2texture(features_dc_pt[:, 0])
-        self._features_dc_texture = nn.Parameter(_features_dc_texture, requires_grad=True)
-        # self._features_dc = nn.Parameter(features_dc_pt, requires_grad=True)
+#         features_dc_pt = torch.tensor(features_dc[nb_idx], dtype=torch.float, device="cuda").transpose(1, 2).contiguous()
+#         _features_dc_texture = self.gfearures2texture(features_dc_pt[:, 0])
+#         self._features_dc_texture = nn.Parameter(_features_dc_texture, requires_grad=True)
+#         # self._features_dc = nn.Parameter(features_dc_pt, requires_grad=True)
 
-        features_rest_pt = torch.tensor(features_extra[nb_idx], dtype=torch.float, device="cuda").transpose(1, 2).contiguous()
+#         features_rest_pt = torch.tensor(features_extra[nb_idx], dtype=torch.float, device="cuda").transpose(1, 2).contiguous()
 
-        _features_rest_texture = self.gfearures2texture(features_rest_pt.reshape(features_rest_pt.shape[0], -1))
-        self._features_rest_texture = nn.Parameter(_features_rest_texture, requires_grad=True)
-        # self._features_rest = nn.Parameter(features_rest_pt, requires_grad=True)
+#         _features_rest_texture = self.gfearures2texture(features_rest_pt.reshape(features_rest_pt.shape[0], -1))
+#         self._features_rest_texture = nn.Parameter(_features_rest_texture, requires_grad=True)
+#         # self._features_rest = nn.Parameter(features_rest_pt, requires_grad=True)
 
-        scaling_pt = torch.tensor(scales[nb_idx], dtype=torch.float, device="cuda")
-        _scaling_texture = self.gfearures2texture(scaling_pt)
-        self._scaling_texture = nn.Parameter(_scaling_texture, requires_grad=True)
-        # self._scaling = nn.Parameter(scaling_pt, requires_grad=True)
+#         scaling_pt = torch.tensor(scales[nb_idx], dtype=torch.float, device="cuda")
+#         _scaling_texture = self.gfearures2texture(scaling_pt)
+#         self._scaling_texture = nn.Parameter(_scaling_texture, requires_grad=True)
+#         # self._scaling = nn.Parameter(scaling_pt, requires_grad=True)
 
-        rotation_pt = torch.tensor(rots[nb_idx], dtype=torch.float, device="cuda")
-        _rotation_texture = self.gfearures2texture(rotation_pt)
-        self._rotation_texture = nn.Parameter(_rotation_texture, requires_grad=True)
-        # self._rotation = nn.Parameter(rotation_pt, requires_grad=True)
+#         rotation_pt = torch.tensor(rots[nb_idx], dtype=torch.float, device="cuda")
+#         _rotation_texture = self.gfearures2texture(rotation_pt)
+#         self._rotation_texture = nn.Parameter(_rotation_texture, requires_grad=True)
+#         # self._rotation = nn.Parameter(rotation_pt, requires_grad=True)
 
-        opacity_pt = torch.tensor(opacities[nb_idx], dtype=torch.float, device="cuda")
-        _opacity_texture = self.gfearures2texture(opacity_pt)
-        self._opacity_texture = nn.Parameter(_opacity_texture, requires_grad=True)
-        # self._opacity = nn.Parameter(opacity_pt, requires_grad=True)
+#         opacity_pt = torch.tensor(opacities[nb_idx], dtype=torch.float, device="cuda")
+#         _opacity_texture = self.gfearures2texture(opacity_pt)
+#         self._opacity_texture = nn.Parameter(_opacity_texture, requires_grad=True)
+#         # self._opacity = nn.Parameter(opacity_pt, requires_grad=True)
 
-    def gfearures2texture(self, gfeatures):
-        '''
-        convert gaussian features to texture map
-        '''
-        texture = -torch.ones([self.texture_size, self.texture_size, gfeatures.shape[1]], device='cuda')
-        # texture[self.gs_u, self.gs_v] = gfeatures
-        texture[self.gaussian_mask] = gfeatures
-        return texture
+#     def gfearures2texture(self, gfeatures):
+#         '''
+#         convert gaussian features to texture map
+#         '''
+#         texture = -torch.ones([self.texture_size, self.texture_size, gfeatures.shape[1]], device='cuda')
+#         # texture[self.gs_u, self.gs_v] = gfeatures
+#         texture[self.gaussian_mask] = gfeatures
+#         return texture
     
-    def update_gaussian_parameters(self, verts, faces, density=0.1):
+#     def update_gaussian_parameters(self, verts, faces, density=0.1):
 
 
-        face_indices_valid, barycentric_coords_valid = recompute_pointcloud_wp(verts, faces, density)
+#         face_indices_valid, barycentric_coords_valid = recompute_pointcloud_wp(verts, faces, density)
 
-        faces_texture = self.texture_faces
-        uvs = self.uvs
+#         faces_texture = self.texture_faces
+#         uvs = self.uvs
 
-        # print('verts', verts.shape)
-        # print('faces', faces.shape)
-        # print('faces_texture', faces_texture.shape)
-        # print('uvs', uvs.shape)
-        # print('density', density)
-        # print('face_indices_valid', face_indices_valid.shape)
-        # print('barycentric_coords_valid', barycentric_coords_valid.shape)
-        # print('uv_coordinates_gaussians', uv_coordinates_gaussians.shape)
-
-
-        uv_coordinates_gaussians = compute_uv_coordinates(uvs, faces_texture, face_indices_valid, barycentric_coords_valid)
+#         # print('verts', verts.shape)
+#         # print('faces', faces.shape)
+#         # print('faces_texture', faces_texture.shape)
+#         # print('uvs', uvs.shape)
+#         # print('density', density)
+#         # print('face_indices_valid', face_indices_valid.shape)
+#         # print('barycentric_coords_valid', barycentric_coords_valid.shape)
+#         # print('uv_coordinates_gaussians', uv_coordinates_gaussians.shape)
 
 
-        scaling_new = sample_texture(self._scaling_texture, uv_coordinates_gaussians)
-        rotation_new = sample_texture(self._rotation_texture, uv_coordinates_gaussians)
-        opacity_new = sample_texture(self._opacity_texture, uv_coordinates_gaussians)
-        xyz_new = sample_texture(self._xyz_texture, uv_coordinates_gaussians)
-        features_dc_new = sample_texture(self._features_dc_texture, uv_coordinates_gaussians).unsqueeze(1)
-        features_rest_new = sample_texture(self._features_rest_texture, uv_coordinates_gaussians)
-        features_rest_new = features_rest_new.reshape(features_rest_new.shape[0], -1, 3)
-        binding_new = face_indices_valid
+#         uv_coordinates_gaussians = compute_uv_coordinates(uvs, faces_texture, face_indices_valid, barycentric_coords_valid)
 
 
-        print('==================')
-        print('binding_new', binding_new.shape)
-        print('self.binding', self.binding.shape)
+#         scaling_new = sample_texture(self._scaling_texture, uv_coordinates_gaussians)
+#         rotation_new = sample_texture(self._rotation_texture, uv_coordinates_gaussians)
+#         opacity_new = sample_texture(self._opacity_texture, uv_coordinates_gaussians)
+#         xyz_new = sample_texture(self._xyz_texture, uv_coordinates_gaussians)
+#         features_dc_new = sample_texture(self._features_dc_texture, uv_coordinates_gaussians).unsqueeze(1)
+#         features_rest_new = sample_texture(self._features_rest_texture, uv_coordinates_gaussians)
+#         features_rest_new = features_rest_new.reshape(features_rest_new.shape[0], -1, 3)
+#         binding_new = face_indices_valid
+
+
+#         print('==================')
+#         print('binding_new', binding_new.shape)
+#         print('self.binding', self.binding.shape)
 
         
-        print('self.gs_u', self.gs_u.shape, self.gs_v.min().item(), self.gs_v.max().item())
-        print('self.gs_v', self.gs_v.shape, self.gs_v.min().item(), self.gs_v.max().item())
+#         print('self.gs_u', self.gs_u.shape, self.gs_v.min().item(), self.gs_v.max().item())
+#         print('self.gs_v', self.gs_v.shape, self.gs_v.min().item(), self.gs_v.max().item())
 
-        print('barycentric_coords_valid', barycentric_coords_valid.shape)
-        print('==================')
+#         print('barycentric_coords_valid', barycentric_coords_valid.shape)
+#         print('==================')
 
-        self._scaling = scaling_new
-        self._rotation = rotation_new
-        self._opacity = opacity_new
-        self._xyz = xyz_new
-        self._features_dc = features_dc_new
-        self._features_rest = features_rest_new
-        self.uv_coordinates_gaussians = uv_coordinates_gaussians
-        self.binding = binding_new
-        self.gs_bc = barycentric_coords_valid.unbind(1)
-        self.num_gs = uv_coordinates_gaussians.shape[0]
+#         self._scaling = scaling_new
+#         self._rotation = rotation_new
+#         self._opacity = opacity_new
+#         self._xyz = xyz_new
+#         self._features_dc = features_dc_new
+#         self._features_rest = features_rest_new
+#         self.uv_coordinates_gaussians = uv_coordinates_gaussians
+#         self.binding = binding_new
+#         self.gs_bc = barycentric_coords_valid.unbind(1)
+#         self.num_gs = uv_coordinates_gaussians.shape[0]
 
  
 
-        # print('opacity_new', opacity_new.shape)
+#         # print('opacity_new', opacity_new.shape)
 
 
 
-    @property
-    def get_xyz(self):
-        fom = self.face_orien_mat[self.binding]
-        _xyz = self._xyz[..., None]
-        face_scaling = self.face_scaling[self.binding]
+#     @property
+#     def get_xyz(self):
+#         fom = self.face_orien_mat[self.binding]
+#         _xyz = self._xyz[..., None]
+#         face_scaling = self.face_scaling[self.binding]
 
 
-        xyz = torch.bmm(self.face_orien_mat[self.binding], self._xyz[..., None]).squeeze(-1)
-        return xyz * self.face_scaling[self.binding] + self.get_barycentric_3d()
+#         xyz = torch.bmm(self.face_orien_mat[self.binding], self._xyz[..., None]).squeeze(-1)
+#         return xyz * self.face_scaling[self.binding] + self.get_barycentric_3d()
     
-    @property
-    def get_final_xyz(self):
-        xyz = torch.bmm(self.face_orien_mat[self.binding], self.local_xyz[..., None]).squeeze(-1)
-        return xyz * self.face_scaling[self.binding] + self.get_barycentric_3d()
+#     @property
+#     def get_final_xyz(self):
+#         xyz = torch.bmm(self.face_orien_mat[self.binding], self.local_xyz[..., None]).squeeze(-1)
+#         return xyz * self.face_scaling[self.binding] + self.get_barycentric_3d()
 
 
-    def get_barycentric_3d(self,perpixel=False):
-        binding = self.binding_perpixel if perpixel else self.binding
+#     def get_barycentric_3d(self,perpixel=False):
+#         binding = self.binding_perpixel if perpixel else self.binding
 
-        triangles = self.mesh.v[self.mesh.f][binding]
-        a, b, c = self.gs_bc_perpixel if perpixel else self.gs_bc
+#         triangles = self.mesh.v[self.mesh.f][binding]
+#         a, b, c = self.gs_bc_perpixel if perpixel else self.gs_bc
 
-        gs_3d = a[:,None] * triangles[:,0] + b[:,None] * triangles[:,1] + c[:,None] * triangles[:,2] 
-        # import open3d as o3d
-        # pcd = o3d.geometry.PointCloud()
-        # pcd.points =  o3d.utility.Vector3dVector(gs_3d.detach().cpu().numpy())
-        # o3d.visualization.draw_geometries([pcd])
-        return gs_3d
+#         gs_3d = a[:,None] * triangles[:,0] + b[:,None] * triangles[:,1] + c[:,None] * triangles[:,2] 
+#         # import open3d as o3d
+#         # pcd = o3d.geometry.PointCloud()
+#         # pcd.points =  o3d.utility.Vector3dVector(gs_3d.detach().cpu().numpy())
+#         # o3d.visualization.draw_geometries([pcd])
+#         return gs_3d
 
-    def get_local_offset(self, gs_3d):
-        '''
-        compute the offset from face center to gaussian position, in local coordinate
-        '''
-        face_centers = self.mesh.v[self.mesh.f].mean(1)[self.binding]
-        global_offset = (gs_3d - face_centers) / self.face_scaling[self.binding]
-        local_offset = torch.bmm(self.face_orien_mat[self.binding].permute(0,2,1), global_offset[..., None]).squeeze(-1)
-        return local_offset
+#     def get_local_offset(self, gs_3d):
+#         '''
+#         compute the offset from face center to gaussian position, in local coordinate
+#         '''
+#         face_centers = self.mesh.v[self.mesh.f].mean(1)[self.binding]
+#         global_offset = (gs_3d - face_centers) / self.face_scaling[self.binding]
+#         local_offset = torch.bmm(self.face_orien_mat[self.binding].permute(0,2,1), global_offset[..., None]).squeeze(-1)
+#         return local_offset
 
-    def get_texture_binding(self, uvs, faces, res=512):
-        '''
-        params:
-        @uvs: array(V_e, 2), uv coor. of extended vertices (seam vertices are duplicated)
-        @faces: array(F, 3), unwarped faces
-        @res: int, texture map resolution
+#     def get_texture_binding(self, uvs, faces, res=512):
+#         '''
+#         params:
+#         @uvs: array(V_e, 2), uv coor. of extended vertices (seam vertices are duplicated)
+#         @faces: array(F, 3), unwarped faces
+#         @res: int, texture map resolution
         
-        Output:
-        @bind_map: array(t_size, t_size), bound face id for each pixel on texture map; non-bound pixels is set to -1
-        '''
-        # init bind map
-        bind_map = np.zeros([res,res]) - 1
-        img = np.zeros([res,res,3])
-        for i, t in enumerate(faces):
-            pixels = self.rasterize(uvs[t], res)
-            if len(pixels) == 0: continue
-            bind_map[pixels[:,1], pixels[:,0]] = i
-            img[pixels[:,1], pixels[:,0]] = np.random.rand(3)*255
-        return bind_map, img
+#         Output:
+#         @bind_map: array(t_size, t_size), bound face id for each pixel on texture map; non-bound pixels is set to -1
+#         '''
+#         # init bind map
+#         bind_map = np.zeros([res,res]) - 1
+#         img = np.zeros([res,res,3])
+#         for i, t in enumerate(faces):
+#             pixels = self.rasterize(uvs[t], res)
+#             if len(pixels) == 0: continue
+#             bind_map[pixels[:,1], pixels[:,0]] = i
+#             img[pixels[:,1], pixels[:,0]] = np.random.rand(3)*255
+#         return bind_map, img
 
-    def rasterize(self, triangle, scale):
-        pixels = []
-        def itp(end1, end2, target, id=0):
-            return end1 + (end2-end1) * (target - end1[id]) / (end2[id] - end1[id])
-        # find bounding box
-        triangle = np.array(triangle) * scale
-        miny, maxy = np.floor(triangle[:,1].min()), np.floor(triangle[:,1].max())
-        # sort face by y
-        v1, v2, v3 = triangle[triangle[:, 1].argsort()]
-        v4 = itp(v1, v3, v2[1], 1)
-        """
-        0 --> 1
-        |           o v1
-        1
+#     def rasterize(self, triangle, scale):
+#         pixels = []
+#         def itp(end1, end2, target, id=0):
+#             return end1 + (end2-end1) * (target - end1[id]) / (end2[id] - end1[id])
+#         # find bounding box
+#         triangle = np.array(triangle) * scale
+#         miny, maxy = np.floor(triangle[:,1].min()), np.floor(triangle[:,1].max())
+#         # sort face by y
+#         v1, v2, v3 = triangle[triangle[:, 1].argsort()]
+#         v4 = itp(v1, v3, v2[1], 1)
+#         """
+#         0 --> 1
+#         |           o v1
+#         1
 
-            v2 o       o v4
+#             v2 o       o v4
 
 
 
-                           o v3
-        """
-        # rasterization
-        for _y in range(int(miny), int(maxy)+1):
-            y = _y + 0.5
-            if y < v1[1] or y >= v3[1] : continue
-            elif y < v2[1]:
-                fmin, fmax = sorted([itp(v1, v2, y, 1)[0], itp(v1, v4, y, 1)[0]])
-                minx, maxx = np.floor(fmin), np.floor(fmax)
-            elif y < v3[1]:
-                fmin, fmax = sorted([itp(v3, v2, y, 1)[0], itp(v3, v4, y, 1)[0]])
-                minx, maxx = np.floor(fmin), np.floor(fmax)
-            for _x in range(int(minx), int(maxx)+1):
-                x = _x + 0.5
-                if x < fmin or x >= fmax: continue
-                pixels.append([_x,_y])
-        return np.array(pixels)
+#                            o v3
+#         """
+#         # rasterization
+#         for _y in range(int(miny), int(maxy)+1):
+#             y = _y + 0.5
+#             if y < v1[1] or y >= v3[1] : continue
+#             elif y < v2[1]:
+#                 fmin, fmax = sorted([itp(v1, v2, y, 1)[0], itp(v1, v4, y, 1)[0]])
+#                 minx, maxx = np.floor(fmin), np.floor(fmax)
+#             elif y < v3[1]:
+#                 fmin, fmax = sorted([itp(v3, v2, y, 1)[0], itp(v3, v4, y, 1)[0]])
+#                 minx, maxx = np.floor(fmin), np.floor(fmax)
+#             for _x in range(int(minx), int(maxx)+1):
+#                 x = _x + 0.5
+#                 if x < fmin or x >= fmax: continue
+#                 pixels.append([_x,_y])
+#         return np.array(pixels)
     
-    def get_visible_mask(self, camera, dot_product_t=-0.7):
-        '''
-        compute the mask, for filtering gaussians that are visible
-        params:
-            @camera: torch.tensor(3,)
-        output:
-            @vis_mask: torch.tensor(num_gs)
-        '''
-        device = camera.device
-        v = self.mesh.v.cpu().numpy()
-        f = self.mesh.f.cpu().numpy()
-        # init scene
-        scene = o3d.t.geometry.RaycastingScene()
-        mesh = o3d.t.geometry.TriangleMesh()
-        mesh.vertex.positions = o3d.core.Tensor(v, o3d.core.float32)
-        mesh.triangle.indices = o3d.core.Tensor(f, o3d.core.int32)
-        scene.add_triangles(mesh)
+#     def get_visible_mask(self, camera, dot_product_t=-0.7):
+#         '''
+#         compute the mask, for filtering gaussians that are visible
+#         params:
+#             @camera: torch.tensor(3,)
+#         output:
+#             @vis_mask: torch.tensor(num_gs)
+#         '''
+#         device = camera.device
+#         v = self.mesh.v.cpu().numpy()
+#         f = self.mesh.f.cpu().numpy()
+#         # init scene
+#         scene = o3d.t.geometry.RaycastingScene()
+#         mesh = o3d.t.geometry.TriangleMesh()
+#         mesh.vertex.positions = o3d.core.Tensor(v, o3d.core.float32)
+#         mesh.triangle.indices = o3d.core.Tensor(f, o3d.core.int32)
+#         scene.add_triangles(mesh)
 
-        # compute UV projection in 3D
-        gs_3d = self.get_barycentric_3d()
-        # gs_3d = self.get_xyz.detach()
+#         # compute UV projection in 3D
+#         gs_3d = self.get_barycentric_3d()
+#         # gs_3d = self.get_xyz.detach()
 
-        # cast ray from camera to GS
-        ray_o = camera[None].repeat(self.num_gs,1)
-        _d = gs_3d - ray_o
-        norm_d = _d.norm(dim=1, keepdim=True)
-        ray_d = _d / norm_d
-        rays = o3d.core.Tensor(torch.cat([ray_o, ray_d], axis=-1).detach().cpu().numpy())
+#         # cast ray from camera to GS
+#         ray_o = camera[None].repeat(self.num_gs,1)
+#         _d = gs_3d - ray_o
+#         norm_d = _d.norm(dim=1, keepdim=True)
+#         ray_d = _d / norm_d
+#         rays = o3d.core.Tensor(torch.cat([ray_o, ray_d], axis=-1).detach().cpu().numpy())
 
-        # Compute the ray intersections.
-        EPSILON = 1e-3 # max distance between intersection point and gaussians
-        ans = scene.cast_rays(rays)
-        # dist_sq = torch.tensor(np.array(ans['t_hit'].numpy(), dtype=np.float32), device=device)
-        # invis_mask = dist_sq + EPSILON < norm_d.squeeze(-1)
-        # vis_mask = ~invis_mask
+#         # Compute the ray intersections.
+#         EPSILON = 1e-3 # max distance between intersection point and gaussians
+#         ans = scene.cast_rays(rays)
+#         # dist_sq = torch.tensor(np.array(ans['t_hit'].numpy(), dtype=np.float32), device=device)
+#         # invis_mask = dist_sq + EPSILON < norm_d.squeeze(-1)
+#         # vis_mask = ~invis_mask
 
-        f_id = torch.tensor(np.array(ans['primitive_ids'].numpy(), dtype=np.int32))
-        vis_mask = self.binding.cpu() == f_id
+#         f_id = torch.tensor(np.array(ans['primitive_ids'].numpy(), dtype=np.int32))
+#         vis_mask = self.binding.cpu() == f_id
 
-        # breakpoint()
-        # pcd = o3d.geometry.PointCloud()
-        # pcd.points =  o3d.utility.Vector3dVector(self.get_xyz[vis_mask].detach().cpu().numpy())
-        # pcd.colors = o3d.utility.Vector3dVector(np.array([[0.4,1,0.4]]*len(pcd.points)))
+#         # breakpoint()
+#         # pcd = o3d.geometry.PointCloud()
+#         # pcd.points =  o3d.utility.Vector3dVector(self.get_xyz[vis_mask].detach().cpu().numpy())
+#         # pcd.colors = o3d.utility.Vector3dVector(np.array([[0.4,1,0.4]]*len(pcd.points)))
 
-        # pcd2 = o3d.geometry.PointCloud()
-        # pcd2.points =  o3d.utility.Vector3dVector(self.get_xyz[~vis_mask].detach().cpu().numpy())
-        # pcd2.colors = o3d.utility.Vector3dVector(np.array([[0.8,0.8,0.8]]*len(pcd2.points)))
+#         # pcd2 = o3d.geometry.PointCloud()
+#         # pcd2.points =  o3d.utility.Vector3dVector(self.get_xyz[~vis_mask].detach().cpu().numpy())
+#         # pcd2.colors = o3d.utility.Vector3dVector(np.array([[0.8,0.8,0.8]]*len(pcd2.points)))
 
-        # cam = o3d.geometry.PointCloud()
-        # cam.points =  o3d.utility.Vector3dVector(camera[None].detach().cpu().numpy())
-        # cam.colors = o3d.utility.Vector3dVector(np.array([[1,0,0]]))
-        # o3d.visualization.draw_geometries([pcd, pcd2, cam])
+#         # cam = o3d.geometry.PointCloud()
+#         # cam.points =  o3d.utility.Vector3dVector(camera[None].detach().cpu().numpy())
+#         # cam.colors = o3d.utility.Vector3dVector(np.array([[1,0,0]]))
+#         # o3d.visualization.draw_geometries([pcd, pcd2, cam])
 
-        return vis_mask.to(device)
+#         return vis_mask.to(device)
         
-    def requires_grad(self, value):
-        self._xyz.requires_grad = value
-        self._features_dc.requires_grad = value
-        self._features_rest.requires_grad = value
-        self._scaling.requires_grad = value
-        self._rotation.requires_grad = value
-        self._opacity.requires_grad = value
-
-
-
-class AvatarSimulationModel(AvatarGaussianModelADC):
-    def __init__(self, tmp_path: str, texture_size=512):
-        super(MeshGaussianModel, self).__init__(3)
-        self.texture_size = texture_size
-
-        # locate template
-        colmap_path = "../datas"
-        _tmp = os.path.join(colmap_path, "_".join(tmp_path.split('/')), "*_uv.obj")
-        tem_dict = read_obj(glob.glob(_tmp)[0])
-        # init mesh
-        self.mesh = MeshModel(tem_dict['vertices'], tem_dict['faces'])
-
-        # Compute pixel-wise bound face indices
-        bind_map, _ = self.get_texture_binding(tem_dict['uvs'], tem_dict['texture_faces'], res=texture_size)
-
-        # init uv bindings
-        self.gaussian_mask = bind_map > -1 # uv map with the binded face ids for each pixel
-        self.binding = torch.tensor(bind_map[self.gaussian_mask], dtype=int).cuda()
-        # others
-        self.num_gs = len(self.binding)
-        self.gs_u, self.gs_v = np.where(self.gaussian_mask)
-        # compute barycentric coor from uv
-        uv_triangles = tem_dict['uvs'][tem_dict['texture_faces']][self.binding.cpu()]*texture_size
-        uv_gs = np.array([self.gs_v, self.gs_u]).T + 0.5
-        bc = barycentric_2D(torch.tensor(uv_triangles), torch.tensor(uv_gs))
-        self.gs_bc = [i.to(torch.float32).cuda() for i in bc]
-
-        # gaussians
-        self.init_empty_gaussians()
-
-    def init_empty_gaussians(self,):
-        # Initialize Gaussian parameters
-        self.active_sh_degree = self.max_sh_degree
-        self.max_radii2D = torch.zeros((self.num_gs), device="cuda")
-
-        self._xyz = nn.Parameter(torch.tensor(np.zeros([self.num_gs, 3]), dtype=torch.float, device="cuda"))
-        # self._xyz = None
-        ## local = o3d.geometry.PointCloud()
-        ## local.points =  o3d.utility.Vector3dVector(self.get_xyz.detach().cpu().numpy())
-        ## o3d.visualization.draw_geometries([local])
-        self.shs = torch.tensor(np.zeros([self.num_gs, 3, (self.max_sh_degree+1)**2]), dtype=torch.float, device="cuda").transpose(1, 2) # (N, 3, 16)
-        self._features_dc = nn.Parameter(torch.tensor(np.zeros([self.num_gs, 3, 1]), dtype=torch.float, device="cuda").transpose(1, 2).contiguous())
-        self._features_rest = nn.Parameter(torch.tensor(np.zeros([self.num_gs, 3, (self.max_sh_degree+1)**2-1]), dtype=torch.float, device="cuda").transpose(1, 2).contiguous())
-        self._scaling = nn.Parameter(torch.tensor(np.zeros([self.num_gs, 3]), dtype=torch.float, device="cuda"))
-        self._rotation = nn.Parameter(torch.tensor(np.zeros([self.num_gs, 4]), dtype=torch.float, device="cuda"))
-        self._opacity = nn.Parameter(torch.tensor(np.zeros([self.num_gs, 1]), dtype=torch.float, device="cuda"))
-
-    def get_gaussian_map(self,):
-        map = {}
-        # init zero map
-        map['features_dc'] = torch.zeros([self.texture_size, self.texture_size, *self._features_dc.shape[1:]])
-        map['features_rest'] = torch.zeros([self.texture_size, self.texture_size, *self._features_rest.shape[1:]])
-        map['scaling'] = torch.zeros([self.texture_size, self.texture_size, *self._scaling.shape[1:]])
-        map['rotation'] = torch.zeros([self.texture_size, self.texture_size, *self._rotation.shape[1:]])
-        map['opacity'] = torch.zeros([self.texture_size, self.texture_size, *self._opacity.shape[1:]])
-        # fill in gaussian values
-        map['features_dc'][self.gaussian_mask] = self._features_dc.detach().cpu()
-        map['features_rest'][self.gaussian_mask] = self._features_rest.detach().cpu()
-        map['scaling'][self.gaussian_mask] = self._scaling.detach().cpu()
-        map['rotation'][self.gaussian_mask] = self._rotation.detach().cpu()
-        map['opacity'][self.gaussian_mask] = self._opacity.detach().cpu()
-        return map
-    
-    def load_texture(self, path):
-        map = pickle.load(open(path, "rb"))
-        mask = map['mask']
-        self._features_dc = map['features_dc'][mask].cuda()
-        self._features_rest = map['features_rest'][mask].cuda()
-        self._scaling = map['scaling'][mask].cuda()
-        self._rotation = map['rotation'][mask].cuda()
-        self._opacity = map['opacity'][mask].cuda()
-        self._xyz = map['xyz'][mask].cuda()
+#     def requires_grad(self, value):
+#         self._xyz.requires_grad = value
+#         self._features_dc.requires_grad = value
+#         self._features_rest.requires_grad = value
+#         self._scaling.requires_grad = value
+#         self._rotation.requires_grad = value
+#         self._opacity.requires_grad = value
 

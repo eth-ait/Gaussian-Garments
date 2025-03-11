@@ -1,3 +1,4 @@
+from PIL import Image
 import numpy as np
 from plyfile import PlyData, PlyElement
 from utils.graphics_utils import BasicPointCloud
@@ -84,3 +85,18 @@ def storePly(path, xyz, rgb):
     vertex_element = PlyElement.describe(elements, 'vertex')
     ply_data = PlyData([vertex_element])
     ply_data.write(path)
+
+
+def load_masked_image(image_path, mask_path, bg_color=None):
+    if bg_color is None:
+        bg_color = np.array([0, 1, 0])
+    image = np.array(Image.open(image_path)) / 255
+    mask = np.array(Image.open(mask_path)) / 255
+    masked_img = image * mask[...,None] + bg_color * (1 - mask[...,None])
+    masked_img = (masked_img * 255).astype(np.uint8)
+    
+    out_dict = {}
+    out_dict['image'] = image
+    out_dict['mask'] = mask
+    out_dict['masked_img'] = masked_img
+    return out_dict

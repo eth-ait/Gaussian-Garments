@@ -108,12 +108,11 @@ def COLMAP_recon(_path, use_gpu=True, skip_dense=False):
         logging.error(f"Fuse Mesh failed with code {exit_code}. Exiting.")
         exit(exit_code)
 
-def post_process(_path, fg_label, vis):
+def post_process(_path, vis):
     """
     Post-process the dense reconstruction results by filtering out background and outliers, poisson surface reconstruction, parsing, and smoothing.
     Args:  
         _path (str): The path to the source folder containing images, masks, and txt files.
-        fg_label (str): The label of the foreground garment.
         vis (bool): Whether to visualize the results.
     """
     print('[Post Process] Loading dense recon result')

@@ -3,9 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import cv2 as cv
 from huepy import yellow
-from scene.appearance import AppearanceNet, ConvUNet, get_embedder
+from scene.appearance import get_embedder
 from scene.avatar_gaussian_model import AvatarGaussianModel
 from scene.styleunet.styleunet import SWGAN_unet
 

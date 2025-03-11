@@ -1,16 +1,11 @@
 import os
-import smplx
-import socket
-import trimesh
 import pickle
 import glob
 import numpy as np
 import torch
 import torch.nn.functional as F
 from sklearn import neighbors
-from argparse import ArgumentParser
 
-from utils.defaults import DEFAULTS
 
 def batch_rodrigues(rot_vecs, epsilon = 1e-8):
     batch_size = rot_vecs.shape[0]

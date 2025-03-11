@@ -54,7 +54,7 @@ class ModelParams(ParamGroup):
         self.data_device = "cuda"
         self.eval = False # TODO: False in stage 1, True in stage 2
         self.llffhold = 12
-        self._garment_type = "" # TODO: remove, assume binary masks
+        # self._garment_type = "" # TODO: remove, assume binary masks
         # list of garment-types: ['upper', 'lower', 'glove', 'shoe', 'outer']
         # specific type of garment, which decides the valid faces for mesh
         # the foreground label for 4DDress dataset, which decides the 2d foreground mask in dataloader

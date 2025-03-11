@@ -25,7 +25,7 @@ from scene.cameras import Camera
 from sklearn import neighbors
 from arguments import ModelParams
 from torch.utils.data import Dataset
-from utils.io_utils import read_obj, write_obj
+from utils.io_utils import load_masked_image, read_obj, write_obj
 from utils.camera_utils import cameraList_from_camInfos
 
 class AvatarDataloader(Dataset):
@@ -36,7 +36,7 @@ class AvatarDataloader(Dataset):
         args.hoost_root: path to the server04 Datasets
         args.subject: path to the sequences ended with *, e.g.: 00190/Inner/Take*
         args.subject_out: path to the registered outputs, e.g.: 00190_upper
-        args.garment_type: one of ['outer'/'upper'/'lower']
+        # args.garment_type: one of ['outer'/'upper'/'lower']
         '''
         # 4DDress dataset pre-defined labels
         self.SURFACE_LABEL = ['full_body', 'skin', 'upper', 'lower', 'hair', 'glove', 'shoe', 'outer', 'background']
@@ -51,37 +51,21 @@ class AvatarDataloader(Dataset):
         self.device = 'cuda'
         self.data_dir = Path(DEFAULTS.data_root) / args.subject
         self.output_dir = args.subject_out 
-        self.fg_label = args.garment_type
+        # self.fg_label = args.garment_type
         self.bg = np.array([1,1,1]) if args.white_background else np.array([0, 0, 0])
         self.random_bg = args.random_bg
         self.blur_mask = args.blur_mask
         self.erode_mask = args.erode_mask
-        self.panelize_labels = ['background', args.garment_type]
+        # self.panelize_labels = ['background', args.garment_type]
         self.texture_size = args.texture_size
         self.texture_margin = args.texture_margin
 
-        print('self.subject', self.data_dir)
-        print('self.subject_out', self.output_dir)
-
-        # stage2_path = Path(DEFAULTS.output_root) / args.subject_out
-
-        # # load template mesh (with UV info)
-        # glob_str = "../datas/{}/{}_uv.obj".format(args.subject.split('/')[0]+'*', args.garment_type)
-        # print('glob_str', glob_str)
-        # # assert False
-        # _template = glob.glob(glob_str)[0]
-        # # _template = glob.glob("../datas/{}/{}_uv.obj".format(args.subject.split('/')[0]+'*', args.garment_type))[0]
 
         _template = output_root / DEFAULTS.stage1 / 'template_uv.obj'
 
         self.template = read_obj(_template)
-
-        # stage2_path = output_root / DEFAULTS.stage2
         sequence_dirs = [seq_dir for seq_dir in self.data_dir.iterdir() if seq_dir.is_dir()]
         
-        # TODO: remove and use only `sequence_dirs``
-        # _seqs = sequence_dirs
-        # seq_names = [s.name for s in sequence_dirs]
 
         # collect info across whole dataset
         self.dataset_infos = {}
@@ -136,34 +120,38 @@ class AvatarDataloader(Dataset):
         _folder = os.path.join(os.path.dirname(info['json_path']),cam)
         _img = os.path.join(_folder, "capture_images", f"{data['current_frame']:05d}.png")
         _lab = os.path.join(_folder, "capture_labels",f"{data['current_frame']:05d}.png")
-        image = np.array(Image.open(_img))
-        label = np.array(Image.open(_lab))[...,None]
-        mask = label == self.MaskLabel[self.fg_label]
-        if self.fg_label == 'full_body': mask = ~mask
-        if self.erode_mask:
-            kernel = np.ones([5,5])
-            mask = cv2.erode(mask.astype('uint8'), kernel)[...,None].astype(bool)
+        image_dict = load_masked_image(_img, _lab, data['bg'])
+        masked_img = image_dict['masked_img'] 
+        mask = image_dict['mask']
+        # image = np.array(Image.open(_img))
+        # label = np.array(Image.open(_lab))[...,None]
+        # mask = label == self.MaskLabel[self.fg_label]
+        # if self.fg_label == 'full_body': mask = ~mask
+        # if self.erode_mask:
+        #     kernel = np.ones([5,5])
+        #     mask = cv2.erode(mask.astype('uint8'), kernel)[...,None].astype(bool)
             # Image.fromarray(np.array(mask[...,0]*255, dtype=np.uint8)).save('mask.png')
             # Image.fromarray(np.array(image * mask + 255 * data['bg'] * ~mask, dtype=np.uint8)).save('gt.png')
 
-        masked_img =  image * mask + 255 * data['bg'] * ~mask
+        # masked_img =  image * mask + 255 * data['bg'] * ~mask
         # get panelize mask
-        if len(self.panelize_labels) > 1: 
-            panelize = np.zeros_like(mask)
-            for key in self.panelize_labels:
-                mask = label == self.MaskLabel[key]
-                if key == 'full_body': mask = ~mask
-                panelize += mask
-            if self.blur_mask:
-                # gaussian blur panelization mask
-                _img = panelize * 255
-                _img = Image.fromarray(np.concatenate([_img,_img,_img], axis=-1, dtype=np.byte), "RGB")
-                _img = np.array(_img.filter(ImageFilter.GaussianBlur(radius=15)))[...,:1] / 255
-                panelize = panelize + _img * ~panelize
-            if self.erode_mask:
-                panelize = cv2.erode(panelize.astype('uint8'), kernel)[...,None].astype(bool)
-        else:
-            panelize = mask
+        # if len(self.panelize_labels) > 1: 
+        #     panelize = np.zeros_like(mask)
+        #     for key in self.panelize_labels:
+        #         mask = label == self.MaskLabel[key]
+        #         if key == 'full_body': mask = ~mask
+        #         panelize += mask
+        #     if self.blur_mask:
+        #         # gaussian blur panelization mask
+        #         _img = panelize * 255
+        #         _img = Image.fromarray(np.concatenate([_img,_img,_img], axis=-1, dtype=np.byte), "RGB")
+        #         _img = np.array(_img.filter(ImageFilter.GaussianBlur(radius=15)))[...,:1] / 255
+        #         panelize = panelize + _img * ~panelize
+        #     if self.erode_mask:
+        #         panelize = cv2.erode(panelize.astype('uint8'), kernel)[...,None].astype(bool)
+        # else:
+        #     panelize = mask
+        panelize = mask
         masked_img = torch.tensor(masked_img, dtype=torch.float32) / 255.
         panelize = torch.tensor(panelize)
 

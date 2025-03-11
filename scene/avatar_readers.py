@@ -19,7 +19,7 @@ from scene.gaussian_model import BasicPointCloud
 from scene.dataset_readers import CameraInfo, Dataloader
 from sklearn import neighbors
 from arguments import ModelParams
-from utils.io_utils import read_obj, write_obj
+from utils.io_utils import load_masked_image, read_obj, write_obj
 from utils.camera_utils import cameraList_from_camInfos
 
 class AvatarDataloader(Dataloader):
@@ -27,9 +27,9 @@ class AvatarDataloader(Dataloader):
         self.device = 'cuda'
         self.subject = args.subject
         self.subject_out = args.subject_out 
-        self.colmap_path = "../datas"
-        self.fg_label = args.garment_type
-        self.panelize_labels = ['background', args.garment_type]
+        # self.colmap_path = "../datas"
+        # self.fg_label = args.garment_type
+        # self.panelize_labels = ['background', args.garment_type]
         self.texture_size = args.texture_size
         self.texture_margin = args.texture_margin
 
@@ -90,10 +90,17 @@ class AvatarDataloader(Dataloader):
             # else:
             _lab = os.path.join(_cam,"capture_labels",f"{frame_idx:05d}.png")
 
+            bg = np.array([0, 0, 0])
+            image_dict = load_masked_image(_img, _lab, bg)
+            masked_img = image_dict['masked_img'] 
+            mask = image_dict['mask']
+
+
             cam_name = _cam.split('/')[-1]
 
-            image = Image.open(_img)
-            width, height = image.size
+            # image = Image.open(_img)
+            # width, height = image.size
+            width, height = masked_img.shape[1], masked_img.shape[0]
 
             # get camera intrinsic and extrinsic matrices
             intrinsic = np.asarray(self.camera_params[cam_name]["intrinsics"])
@@ -104,26 +111,24 @@ class AvatarDataloader(Dataloader):
             cx, cy = intrinsic[:2, 2]
             FovY, FovX = focal2fov(fy, height), focal2fov(fx, width)
 
-            label = np.array(Image.open(_lab))[...,None]
-            mask = label == self.MaskLabel[self.fg_label]
-            if self.fg_label == 'full_body': mask = ~mask
+            # label = np.array(Image.open(_lab))[...,None]
+            # mask = label == self.MaskLabel[self.fg_label]
+            # if self.fg_label == 'full_body': mask = ~mask
 
-            # bg = np.array([1,1,1]) if self.white_background else np.array([0, 0, 0])
-            bg = np.array([0, 0, 0])
-
-            masked_img =  np.array(image) * mask + 255 * bg * ~mask
+            # masked_img =  np.array(image) * mask + 255 * bg * ~mask
             image = Image.fromarray(np.array(masked_img, dtype=np.byte), "RGB")
 
-            # get panelize mask
-            if len(self.panelize_labels) > 1: 
-                panelize = np.zeros_like(mask)
-                for key in self.panelize_labels:
-                    mask = label == self.MaskLabel[key]
-                    if key == 'full_body': mask = ~mask
-                    panelize += mask
-            else:
-                panelize = mask
+            # get panelize mask # TODO: What's that?
+            # if len(self.panelize_labels) > 1: 
+            #     panelize = np.zeros_like(mask)
+            #     for key in self.panelize_labels:
+            #         mask = label == self.MaskLabel[key]
+            #         if key == 'full_body': mask = ~mask
+            #         panelize += mask
+            # else:
+            #     panelize = mask
                 
+            panelize = mask
 
             # append camera_info        
             camera_info = CameraInfo(uid=idx, R=R, T=T, FovY=FovY, FovX=FovX,  fx=fx, fy=fy, cx=cx, cy=cy, image=image, mask=panelize,
@@ -207,6 +212,7 @@ class AvatarDataloader(Dataloader):
 
 
     def get_maps(self, idx):
+        # TODO: Is this used anywhere?
         frame_idx = self.start_frame + idx # frame filename
         # locate template
         _tmp = os.path.join(self.colmap_path, "_".join(self.subject.split('/')[:-1])+"_Take*", f"{self.fg_label}_uv.obj")

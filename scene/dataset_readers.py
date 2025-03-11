@@ -23,6 +23,7 @@ import numpy as np
 import json
 from pathlib import Path
 from plyfile import PlyData, PlyElement
+from utils.io_utils import load_masked_image
 from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
 from sklearn import neighbors
@@ -93,15 +94,17 @@ class Dataloader():
             print(f"[4DDress] Reading frame {frame_idx} camera {idx+1}/{self.cam_num} ")
 
             _img = os.path.join(_cam,"capture_images",f"{frame_idx:05d}.png")
-            # if os.path.exists(os.path.join(_cam,"group_labels",f"{frame_idx:05d}.png")):
-            #     _lab = os.path.join(_cam,"group_labels",f"{frame_idx:05d}.png")
-            # else:
             _lab = os.path.join(_cam,"capture_labels",f"{frame_idx:05d}.png")
+            bg = np.array([1,1,1]) if self.white_background else np.array([0, 0, 0])
+            image_dict = load_masked_image(_img, _lab, bg)
+            masked_img = image_dict['masked_img'] 
+            mask = image_dict['mask']
+            width, height = masked_img.shape[1], masked_img.shape[0]
 
             cam_name = _cam.split('/')[-1]
 
-            image = Image.open(_img)
-            width, height = image.size
+            # image = Image.open(_img)
+            # width, height = image.size
 
             # get camera intrinsic and extrinsic matrices
             intrinsic = np.asarray(self.camera_params[cam_name]["intrinsics"])
@@ -112,31 +115,31 @@ class Dataloader():
             cx, cy = intrinsic[:2, 2]
             FovY, FovX = focal2fov(fy, height), focal2fov(fx, width)
 
-            label = np.array(Image.open(_lab))[...,None]
-            if isinstance(self.fg_label, list):
-                mask = np.zeros_like(label)
-                for key in self.fg_label:
-                    assert not key == "full_body", "The fg_label shouldn't be 'fullbody' when training Body guassians"
-                    mask += label == self.MaskLabel[key]
-            else:
-                mask = label == self.MaskLabel[self.fg_label]
-                if self.fg_label == 'full_body': mask = ~mask
+            # label = np.array(Image.open(_lab))[...,None]
+            # if isinstance(self.fg_label, list):
+            #     mask = np.zeros_like(label)
+            #     for key in self.fg_label:
+            #         assert not key == "full_body", "The fg_label shouldn't be 'fullbody' when training Body guassians"
+            #         mask += label == self.MaskLabel[key]
+            # else:
+            #     mask = label == self.MaskLabel[self.fg_label]
+            #     if self.fg_label == 'full_body': mask = ~mask
 
-            bg = np.array([1,1,1]) if self.white_background else np.array([0, 0, 0])
 
-            masked_img =  np.array(image) * mask + 255 * bg * ~mask
+            # masked_img =  np.array(image) * mask + 255 * bg * ~mask
             image = Image.fromarray(np.array(masked_img, dtype=np.byte), "RGB")
 
             # get panelize mask
-            if len(self.panelize_labels) > 1: 
-                panelize = np.zeros_like(mask)
-                for key in self.panelize_labels:
-                    mask = label == self.MaskLabel[key]
-                    if key == 'full_body': mask = ~mask
-                    panelize += mask
-            else:
-                panelize = mask
+            # if len(self.panelize_labels) > 1: 
+            #     panelize = np.zeros_like(mask)
+            #     for key in self.panelize_labels:
+            #         mask = label == self.MaskLabel[key]
+            #         if key == 'full_body': mask = ~mask
+            #         panelize += mask
+            # else:
+            #     panelize = mask
                 
+            panelize = mask
 
             # append camera_info        
             camera_info = CameraInfo(uid=idx, R=R, T=T, FovY=FovY, FovX=FovX,  fx=fx, fy=fy, cx=cx, cy=cy, image=image, mask=panelize,

@@ -51,15 +51,12 @@ if __name__ == "__main__":
     parser = ArgumentParser(description="Training script parameters")
     op = OptimizationParams(parser)
     pp = PipelineParams(parser)
-    # parser.add_argument('-s', '--source_path', type=str, required=True) # path to 4ddress camera.json folder
-    # parser.add_argument('-m', '--model_path', type=str, required=True) # path to optimized results folder (where 'meshes' folder should exists)
 
     parser.add_argument('-s', '--subject', type=str, required=True, default='')
     parser.add_argument('-so', '--subject_out', type=str, default='')
     
-    parser.add_argument('-g', '--garment_type', type=str, required=True) # garment label
+    # parser.add_argument('-g', '--garment_type', type=str, required=True) # garment label
     parser.add_argument('--ckpt_path', type=str, default='') 
-    parser.add_argument('--name', type=str, default='avatar') # TODO: remove
     # mesh gaussian config
     parser.add_argument('--sh_degree', type=int, default=3)
     parser.add_argument('--texture_size', type=int, default=512)
@@ -74,8 +71,7 @@ if __name__ == "__main__":
     parser.add_argument("--random_bg", action="store_true")
     parser.add_argument("--blur_mask", action="store_true")
     parser.add_argument("--erode_mask", action="store_true") # TODO: always false?
-    parser.add_argument('--eval', action='store_true')
-    parser.add_argument('--no_xyz', action='store_true') # is it for ablation study?
+    parser.add_argument('--no_xyz', action='store_true') # TODO: is it for ablation study?
     parser.add_argument('--llffhold', type=int, default=12)
     args = parser.parse_args(sys.argv[1:])
 

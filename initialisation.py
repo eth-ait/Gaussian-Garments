@@ -15,7 +15,7 @@ def initialization_parser():
     parser.add_argument("--no_gpu", action='store_true')
 
     # Post-processing arguments
-    parser.add_argument("--garment_type", "-g", required=True, type=str, help="The garment label to be processed, must be one of [upper, lower, outer].")
+    # parser.add_argument("--garment_type", "-g", required=True, type=str, help="The garment label to be processed, must be one of [upper, lower, outer].")
     parser.add_argument("--visualize", "-v", action='store_true')
     
     return parser
@@ -31,5 +31,5 @@ if __name__ == "__main__":
     target_root = Path(DEFAULTS.output_root) / args.subject_out / DEFAULTS.stage1
     dataset = PrepareDataset(source_root, target_root, args.camera)
 
-    COLMAP_recon(dataset.target_root, int(not args.no_gpu))
-    post_process(dataset.target_root, args.garment_type, args.visualize)
+    # COLMAP_recon(dataset.target_root, int(not args.no_gpu))
+    post_process(dataset.target_root, args.visualize)

@@ -6,6 +6,8 @@ import glob
 import numpy as np
 from PIL import Image
 from pathlib import Path
+
+from utils.io_utils import load_masked_image
 from .defaults import DEFAULTS
 
 def rotmat2qvec(R):
@@ -31,7 +33,6 @@ class PrepareDataset:
         Args:
             subject (str): The subject identifier e.g. '00190/Inner'
             sequence (str): The sequence identifier e.g. 'Take2'
-            garment_type (str): The type of garment being processed.
         """
         self.fg_label = fg_label
         self.cam_type = cam_type
@@ -39,7 +40,9 @@ class PrepareDataset:
         self.target_root = target_root
         self.source_root = source_root
         
-        self.prepare_output_dir()
+        already_populated = self.prepare_output_dir()
+        if already_populated:
+            return
         self.populate_imgs_dir()
         self.export_colmap()
         
@@ -49,8 +52,10 @@ class PrepareDataset:
             if delete.lower() == 'y':
                 shutil.rmtree(self.target_root)
             else:
-                print(f"Error: Permission denied. Unable to proceed because the folder '{self.target_root}' already exists.")
-                sys.exit(1)  # Terminate the program with an error status
+                print(f"Using existing '{self.target_root}'.")
+                return True
+                # print(f"Error: Permission denied. Unable to proceed because the folder '{self.target_root}' already exists.")
+                # sys.exit(1)  # Terminate the program with an error status
 
         os.makedirs(self.target_root, exist_ok=True)
         print(f"-------\nOutput folder created at {self.target_root}\n-------")
@@ -60,15 +65,17 @@ class PrepareDataset:
         os.makedirs(self._img_out, exist_ok=True)
         os.makedirs(self._mask_out, exist_ok=True)
         os.makedirs(self._txt_out, exist_ok=True)
+
+        return False
     
     def populate_imgs_dir(self):
         """
         Read the images, labels, and masks and writes them to the output directory within respective folders. 
         """
         
-        SURFACE_LABELS = ['full_body', 'skin', 'upper', 'lower', 'hair', 'glove', 'shoe', 'outer', 'background']
-        GRAY_VALUES = np.array([255, 128, 98, 158, 188, 218, 38, 68, 255])
-        mask_label = dict(zip(SURFACE_LABELS, GRAY_VALUES))
+        # SURFACE_LABELS = ['full_body', 'skin', 'upper', 'lower', 'hair', 'glove', 'shoe', 'outer', 'background']
+        # GRAY_VALUES = np.array([255, 128, 98, 158, 188, 218, 38, 68, 255])
+        # mask_label = dict(zip(SURFACE_LABELS, GRAY_VALUES))
 
         cam_paths = sorted([os.path.join(self.source_root, fn) for fn in os.listdir(self.source_root) if '00' in fn])
         _imgs = sorted(glob.glob(os.path.join(cam_paths[0], "capture_images/*.png")))
@@ -79,20 +86,31 @@ class PrepareDataset:
             print(f"Reading frame {start_frame} camera {idx+1}/{cam_num} ")
             _img = os.path.join(_cam,"capture_images",f"{start_frame:05d}.png")
             _lab = os.path.join(_cam,"capture_labels",f"{start_frame:05d}.png")
+            image_dict = load_masked_image(_img, _lab, np.array([0,1,0]))
+            mask = image_dict['mask']
+            masked_img = image_dict['masked_img']
+
+
+            
             cam_name = _cam.split('/')[-1]
 
-            image = np.array(Image.open(_img))
-            label = np.array(Image.open(_lab))
-            mask = label == mask_label[self.fg_label]
-            if self.fg_label == 'full_body': mask = ~mask
+            # image = np.array(Image.open(_img)) / 255
+            # mask = np.array(Image.open(_lab)) / 255
+            # mask = label == mask_label[self.fg_label]
+            # if self.fg_label == 'full_body': mask = ~mask
 
+            # print('mask', mask.max(), mask.min())
+            # assert False
 
             # use green background
-            masked_img = image * mask[...,None] + np.array([0,255,0]) * ~mask[...,None]
+            # masked_img = image * mask[...,None] + np.array([0,1,0]) * (1 - mask[...,None])
+            # masked_img = (masked_img * 255).astype(np.uint8)
+
             image = Image.fromarray(np.array(masked_img, dtype=np.byte), "RGB")
             image.save(os.path.join(self._img_out, cam_name+'.png'))
-            label = Image.fromarray(label)
-            label.save(os.path.join(self._mask_out, cam_name+'.png')) 
+            # label = Image.fromarray(label)
+            # label.save(os.path.join(self._mask_out, cam_name+'.png')) 
+            mask = (mask * 255).astype(np.uint8)
             mask = Image.fromarray(mask)
             mask.save(os.path.join(self._mask_out, cam_name+'.png.png'))
     
