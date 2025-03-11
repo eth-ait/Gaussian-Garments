@@ -1,32 +1,17 @@
 import os
-import sys
-import cv2
 import glob
 import random
 import torch
-import socket
-import pickle
-import trimesh
-import copy
 import bpy
-from PIL import Image, ImageFilter
-from typing import NamedTuple
+from PIL import Image
 from utils.defaults import DEFAULTS
-from utils.graphics_utils import getWorld2View2, focal2fov, fov2focal
+from utils.graphics_utils import focal2fov
 import numpy as np
 import json
 from pathlib import Path
 from scipy.spatial.transform import Rotation as R
-from plyfile import PlyData, PlyElement
-from utils.sh_utils import SH2RGB
-from scene.gaussian_model import BasicPointCloud
-from scene.dataset_readers import CameraInfo, Dataloader
-from scene.cameras import Camera
-from sklearn import neighbors
-from arguments import ModelParams
 from torch.utils.data import Dataset
-from utils.io_utils import load_masked_image, read_obj, write_obj
-from utils.camera_utils import cameraList_from_camInfos
+from utils.io_utils import load_masked_image, read_obj
 
 class AvatarDataloader(Dataset):
     def __init__(self, args):
@@ -123,37 +108,12 @@ class AvatarDataloader(Dataset):
         image_dict = load_masked_image(_img, _lab, data['bg'])
         masked_img = image_dict['masked_img'] 
         mask = image_dict['mask']
-        # image = np.array(Image.open(_img))
-        # label = np.array(Image.open(_lab))[...,None]
-        # mask = label == self.MaskLabel[self.fg_label]
-        # if self.fg_label == 'full_body': mask = ~mask
-        # if self.erode_mask:
-        #     kernel = np.ones([5,5])
-        #     mask = cv2.erode(mask.astype('uint8'), kernel)[...,None].astype(bool)
-            # Image.fromarray(np.array(mask[...,0]*255, dtype=np.uint8)).save('mask.png')
-            # Image.fromarray(np.array(image * mask + 255 * data['bg'] * ~mask, dtype=np.uint8)).save('gt.png')
 
-        # masked_img =  image * mask + 255 * data['bg'] * ~mask
-        # get panelize mask
-        # if len(self.panelize_labels) > 1: 
-        #     panelize = np.zeros_like(mask)
-        #     for key in self.panelize_labels:
-        #         mask = label == self.MaskLabel[key]
-        #         if key == 'full_body': mask = ~mask
-        #         panelize += mask
-        #     if self.blur_mask:
-        #         # gaussian blur panelization mask
-        #         _img = panelize * 255
-        #         _img = Image.fromarray(np.concatenate([_img,_img,_img], axis=-1, dtype=np.byte), "RGB")
-        #         _img = np.array(_img.filter(ImageFilter.GaussianBlur(radius=15)))[...,:1] / 255
-        #         panelize = panelize + _img * ~panelize
-        #     if self.erode_mask:
-        #         panelize = cv2.erode(panelize.astype('uint8'), kernel)[...,None].astype(bool)
-        # else:
-        #     panelize = mask
         panelize = mask
         masked_img = torch.tensor(masked_img, dtype=torch.float32) / 255.
         panelize = torch.tensor(panelize)
+
+        print('masked_img', masked_img.shape)
 
         # load cam
         cam_params = json.load(open(info['json_path'], 'r'))[cam]
@@ -161,10 +121,8 @@ class AvatarDataloader(Dataset):
 
         # load current frame mesh and bake textures
         _mesh = self.output_dir / DEFAULTS.stage2 /  data['current_seq'] / "meshes" / f"frame_{data['current_frame']}.obj"
-        _body = self.data_dir / data['current_seq'] / "Meshes" / "smplx" / f"{data['current_frame']:05d}.ply"
+        _body = self.data_dir / data['current_seq'] / "smplx" / f"{data['current_frame']:05d}.ply"
 
-        # _mesh = os.path.join(self.output_dir, data['current_seq'], "meshes", f"frame_{data['current_frame']}.obj")
-        # _body = os.path.join(self.data_dir.replace('*', data['current_seq'].split('take')[-1]), f"Meshes/smplx/{data['current_frame']:05d}.ply")
         data['ambient'], data['normal'], data['mesh_v'] = self.get_maps(_mesh, _body)
 
         return data
@@ -180,6 +138,8 @@ class AvatarDataloader(Dataset):
         fx, fy = intrinsic[0, 0], intrinsic[1, 1]
         cx, cy = intrinsic[:2, 2]
         FovY, FovX = focal2fov(fy, h), focal2fov(fx, w)
+
+        print('mask', mask.shape)
 
         # return Camera(R=R, T=T, FoVx=FovX, FoVy=FovY, fx=fx, fy=fy, cx=cx, cy=cy,
         #               image=image.permute(2,0,1), gt_alpha_mask=mask.permute(2,0,1), data_device='cpu')
@@ -244,7 +204,7 @@ class AvatarDataloader(Dataset):
             try:
                 bpy.ops.wm.ply_import(filepath=str(body_path))
             except:
-                print(body_path)
+                print("BODY_MESH", body_path, "NOT LOADED")
         bpy.ops.wm.obj_import(filepath=str(mesh_path))
         mesh = bpy.data.objects[-1]
 

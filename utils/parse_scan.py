@@ -10,6 +10,7 @@ from pytorch3d.structures import Meshes
 from pytorch3d.renderer import PerspectiveCameras, RasterizationSettings, MeshRasterizer
 
 
+# TODO: remove reliance on these global variables
 # set 4DDress RGB cameras
 RGB_CAMERAS = ['0000', '0001', '0004', '0005', '0008', '0009', '0012', '0013', '0016', '0017',
                '0020', '0021', '0024', '0025', '0028', '0029', '0032', '0033', '0036', '0037',
@@ -17,17 +18,16 @@ RGB_CAMERAS = ['0000', '0001', '0004', '0005', '0008', '0009', '0012', '0013', '
                '0060', '0061', '0064', '0065', '0068', '0069', '0072', '0073', '0076', '0077',
                '0080', '0081', '0084', '0085', '0088', '0089', '0092', '0093']
 # set 4DDress label_color: skin-0, upper-1, lower-2, hair-3, glove-4, shoe-5, outer-6, background-7
-SURFACE_LABEL = ['skin', 'upper', 'lower', 'hair', 'glove', 'shoe', 'outer', 'background']
-SURFACE_LABEL_GRAY = np.array([128, 98, 158, 188, 218, 38, 68, 255])
-SURFACE_LABEL_COLOR = np.array([[128, 128, 128], [180, 50, 50], [50, 180, 50], [255, 128, 0], [128, 128, 0], [128, 0, 255], [0, 128, 255], [255, 255, 255]])
+# SURFACE_LABEL = ['skin', 'upper', 'lower', 'hair', 'glove', 'shoe', 'outer', 'background']
+# SURFACE_LABEL_GRAY = np.array([128, 98, 158, 188, 218, 38, 68, 255])
+# SURFACE_LABEL_COLOR = np.array([[128, 128, 128], [180, 50, 50], [50, 180, 50], [255, 128, 0], [128, 128, 0], [128, 0, 255], [0, 128, 255], [255, 255, 255]])
 
 # render label_colors(nvt, 4) according to labels: skin 0, upper 1, lower 2, ...
 def render_label_colors(label):
     # init white color as background
     colors = np.ones((label.shape[0], 3)) * 255
     # assign label color
-    for nl in range(len(SURFACE_LABEL)):
-        colors[label == nl] = SURFACE_LABEL_COLOR[nl]
+    colors[label == 1] = [128, 128, 128]
     # append color with the fourth channel
     colors = np.append(colors, np.ones((colors.shape[0], 1)) * 255, axis=-1) / 255.
     return colors
@@ -63,7 +63,7 @@ def load_capture_cameras(camera_params, camera_list, image_shape):
     return camera_dict, raster_settings
 
 
-def parse_scan(scan_data, source_path, fg_label=None, only_fg=True):
+def parse_scan(scan_data, source_path, only_fg=True):
     camera_fn = os.path.join(source_path, 'cameras.json')
     multi_view_labels = dict()
 
@@ -75,10 +75,10 @@ def parse_scan(scan_data, source_path, fg_label=None, only_fg=True):
 
     # load multi-view labels (H, W): skin-0, upper-1, lower-2, hair-3, glove-4, shoe-5, outer-6, background-7
     for camera_id in RGB_CAMERAS:
-        label_image = cv.imread(os.path.join(source_path, 'masks', f'{camera_id}.png'))
+        label_image_path = os.path.join(source_path, 'masks', f'{camera_id}.png.png')
+        label_image = cv.imread(label_image_path) / 255.0
         label_value = np.zeros(label_image.shape)
-        for nl in range(len(SURFACE_LABEL_GRAY)):
-            label_value[label_image == SURFACE_LABEL_GRAY[nl]] = nl
+        label_value[label_image > 0.5] = 1
         multi_view_labels[camera_id] = label_value
 
 
@@ -95,7 +95,9 @@ def parse_scan(scan_data, source_path, fg_label=None, only_fg=True):
     # # -------------------- Load Capture Image and Camera -------------------- # #
 
     # init scan_votes (nvt, nl)
-    scan_votes = torch.zeros((scan_data.vertices.shape[0], len(SURFACE_LABEL)-1)).cuda()
+    # scan_votes = torch.zeros((scan_data.vertices.shape[0], len(SURFACE_LABEL)-1)).cuda()
+    scan_votes = torch.zeros((scan_data.vertices.shape[0], 2)).cuda()
+
     for nc in tqdm.tqdm(range(len(RGB_CAMERAS))):
         camera_id = RGB_CAMERAS[nc]
         # label_value (H, W): skin-0, upper-1, lower-2, hair-3, glove-4, shoe-5, outer-6, background-7
@@ -107,13 +109,14 @@ def parse_scan(scan_data, source_path, fg_label=None, only_fg=True):
         pix_to_face = capture_rasts.pix_to_face[0, :, :, 0].cuda()
 
         # append label votes
-        for nl in range(len(SURFACE_LABEL)-1):
+        for nl in range(2):
             label_points = torch.stack(torch.where(label_value == nl), dim=0).T
             label_faces = pix_to_face[label_points[:, 0], label_points[:, 1]]
             # project to label_vertices (np, 3)
             label_vertices = th_faces.squeeze(0)[label_faces[label_faces > -1]]
             for nf in range(label_vertices.shape[-1]):
                 scan_votes[label_vertices[:, nf], nl] += 1
+
 
     # obtain scan_labels
     scan_labels = (torch.argmax(scan_votes, dim=-1)).cpu().numpy()
@@ -129,8 +132,8 @@ def parse_scan(scan_data, source_path, fg_label=None, only_fg=True):
     # return segmented, fg_mesh
 
     if only_fg:
-        fg_idx = SURFACE_LABEL.index(fg_label)
-        face_mask = (scan_labels[scan_data.faces] == fg_idx).all(-1)
+        # fg_idx = SURFACE_LABEL.index(fg_label)
+        face_mask = (scan_labels[scan_data.faces] == 1).all(-1)
         return segmented, face_mask
     else:
         return scan_labels

@@ -97,6 +97,6 @@ def load_masked_image(image_path, mask_path, bg_color=None):
     
     out_dict = {}
     out_dict['image'] = image
-    out_dict['mask'] = mask
+    out_dict['mask'] = mask[..., None]
     out_dict['masked_img'] = masked_img
     return out_dict

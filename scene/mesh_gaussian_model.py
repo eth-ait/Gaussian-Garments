@@ -25,7 +25,7 @@ from arguments import ModelParams
 import pickle
 import open3d as o3d
 from sklearn import neighbors
-from lbs import load_4DDress_smplx, prepare_lbs
+from lbs import prepare_lbs
 from roma import rotmat_to_unitquat, quat_xyzw_to_wxyz, quat_wxyz_to_xyzw, quat_product, unitquat_to_rotmat
 from argparse import ArgumentParser
 from scene.mesh_model import MeshModel

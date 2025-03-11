@@ -3,7 +3,6 @@ from pathlib import Path
 import random
 import json
 import torch
-import trimesh
 import numpy as np
 import open3d as o3d
 from sklearn import neighbors

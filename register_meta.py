@@ -158,7 +158,7 @@ def main():
     source_dir = Path(DEFAULTS.dataset_root) / sname / gname  / take
     registration_dir = Path(DEFAULTS.registration_root) / args.t / gseq / take.lower()
     meshes_dir = registration_dir / 'meshes'
-    smplx_dir = source_dir / 'Meshes' / 'smplx'
+    smplx_dir = source_dir / 'smplx'
 
     if meshes_dir.exists():
         n_target = len(list(meshes_dir.glob('*.obj')))

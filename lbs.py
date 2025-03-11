@@ -243,20 +243,21 @@ def lbs(betas, pose, v_template, shapedirs, posedirs,
     return A[0], v[0], pose_offsets[0]
 
 
-def load_4DDress_smplx(source_path, tmp_path=None):
-    if tmp_path is None: tmp_path = source_path
-    # locate template pose (non_cano pose)
-    colmap_path = glob.glob(os.path.join("../datas", "_".join(tmp_path.split('/')[-3:-1])+"_Take*"))[0]
-    tmp_smplx = sorted(glob.glob(os.path.join('/', *tmp_path.split('/')[:-1], colmap_path.split("_")[-1], "Meshes/smplx/*.pkl")))[0]
-    tmp_pose = pickle.load(open(tmp_smplx, 'rb'))
+# TODO: remove
+# def load_4DDress_smplx(source_path, tmp_path=None):
+#     if tmp_path is None: tmp_path = source_path
+#     # locate template pose (non_cano pose)
+#     colmap_path = glob.glob(os.path.join("../datas", "_".join(tmp_path.split('/')[-3:-1])+"_Take*"))[0]
+#     tmp_smplx = sorted(glob.glob(os.path.join('/', *tmp_path.split('/')[:-1], colmap_path.split("_")[-1], "Meshes/smplx/*.pkl")))[0]
+#     tmp_pose = pickle.load(open(tmp_smplx, 'rb'))
 
-    # load target pose sequence
-    smplx_seq = sorted(glob.glob(os.path.join(source_path, "Meshes/smplx/*.pkl")))
-    pose_list = []
-    for _smplx in smplx_seq:
-        pose = pickle.load(open(_smplx, 'rb'))
-        # replace target beta with template beta
-        pose['betas'] = tmp_pose['betas']
-        pose_list.append(pose)
-    return pose_list, tmp_pose
+#     # load target pose sequence
+#     smplx_seq = sorted(glob.glob(os.path.join(source_path, "Meshes/smplx/*.pkl")))
+#     pose_list = []
+#     for _smplx in smplx_seq:
+#         pose = pickle.load(open(_smplx, 'rb'))
+#         # replace target beta with template beta
+#         pose['betas'] = tmp_pose['betas']
+#         pose_list.append(pose)
+#     return pose_list, tmp_pose
 

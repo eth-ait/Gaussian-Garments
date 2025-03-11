@@ -52,8 +52,8 @@ class CameraInfo():
 class Dataloader():
     def __init__(self, args: ModelParams, load_iteration=None, body=False) -> None:
         self.subject_out = args.subject_out
-        self.fg_label = ['skin', 'hair', 'glove', 'shoe'] if body else args.garment_type
-        self.panelize_labels = ['background', 'skin', 'hair', 'glove', 'shoe'] if body else ['background', args.garment_type]
+        # self.fg_label = ['skin', 'hair', 'glove', 'shoe'] if body else args.garment_type
+        # self.panelize_labels = ['background', 'skin', 'hair', 'glove', 'shoe'] if body else ['background', args.garment_type]
         self.white_background = args.white_background
 
         # locate sequence
@@ -74,7 +74,7 @@ class Dataloader():
         self.start_frame = min_frame # if args.template_frame is None else int(args.template_frame)
         self.frame_num = len(_imgs)
         # smplx info
-        self.smplx_list = sorted(glob.glob(os.path.join(seq_path, "Meshes/smplx/*.ply")))
+        self.smplx_list = sorted(glob.glob(os.path.join(seq_path, "smplx/*.ply")))
 
         # 4DDress dataset pre-defined labels
         self.SURFACE_LABEL = ['full_body', 'skin', 'upper', 'lower', 'hair', 'glove', 'shoe', 'outer', 'background']

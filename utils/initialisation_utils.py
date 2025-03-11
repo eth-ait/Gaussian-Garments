@@ -152,7 +152,7 @@ def post_process(_path, vis):
 
     print('[Post Process] Parsing')
     tmesh = trimesh.Trimesh(vertices=np.array(mesh.vertices), faces=np.array(mesh.triangles), process=True)
-    tmesh, valid_triangles = parse_scan(tmesh, _path, fg_label)
+    tmesh, valid_triangles = parse_scan(tmesh, _path)
     tmesh.export(os.path.join(_path, "segmented.obj"))
     mesh.remove_triangles_by_mask(~valid_triangles)
     mesh.remove_unreferenced_vertices()
