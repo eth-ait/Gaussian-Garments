@@ -112,10 +112,7 @@ class GaussianModel:
     
     @property
     def get_opacity(self):
-
         opacity = self.opacity_activation(self._opacity)
-        # opacity = torch.ones_like(opacity) 
-        # print('opacity', opacity.shape, opacity.min().item(), opacity.max().item())
         return opacity
     
     def get_covariance(self, scaling_modifier = 1):

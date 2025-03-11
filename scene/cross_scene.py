@@ -151,21 +151,6 @@ class crossScene(Scene):
         self.gaussians.spatial_lr_scale = self.cameras_extent
 
     def sparse_icp(self,):
-        
-        source_path = self.args.subject
-
-        # ttype = Path(self.args.subject_out).parts[-3]
-
-        # if ttype in DEFAULTS.ttypes:
-        #     ttype_param = f'-t {ttype}'
-        # else:
-        #     ttype_param = ''
-        #     ttype = ''
-
-        # print('ttype', ttype)
-        # print('ttype_param', ttype_param)
-        # output_path = "../datas/"+f"/{ttype}/"+"_".join(self.args.subject.split('/'))
-        
         stage1_path = Path(self.subject_out) / DEFAULTS.stage1
         stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence
         points3D_path = stage1_path / "sparse" / "points3D.bin"
@@ -185,7 +170,6 @@ class crossScene(Scene):
         reg_p2p = o3d.pipelines.registration.registration_icp(source, target, 10.)
 
         glob_str = os.path.join(self.args.cross_from, 'meshes/frame_*.obj')
-        print('glob_str', glob_str)
         _src_mesh = sorted(glob.glob(os.path.join(self.args.cross_from, 'meshes/frame_*.obj')), key=lambda x: int(x[:-4].split('_')[-1]))[0]
         source.points =  o3d.utility.Vector3dVector(read_obj(_src_mesh)['vertices'])
         source.transform(reg_p2p.transformation)

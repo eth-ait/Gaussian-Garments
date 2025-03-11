@@ -59,7 +59,6 @@ class AvatarDataloader(Dataset):
             # camera info
             # cam_folders = sorted([seq_path / fn for fn in os.listdir(seq_path) if '00' in fn])
             cam_folders = sorted(list(seq_path.glob('00*')))
-            # print(cam_folders)
 
             if args.eval:
                 info['cam_names'] = [n.name for idx, n in enumerate(cam_folders) if idx % args.llffhold != 0]
@@ -71,9 +70,6 @@ class AvatarDataloader(Dataset):
             images_dir = cam_folders[0] / "capture_images"
             _imgs = sorted(glob.glob(os.path.join(images_dir, "*.png")))
             _imgs = [Path(img) for img in _imgs]
-
-            # print('_imgs[0]', _imgs[0].stem)
-            # assert False
 
             info['start_frame'] = int(_imgs[0].stem)
             info['frame_num'] = len(_imgs)
@@ -109,8 +105,6 @@ class AvatarDataloader(Dataset):
         masked_img = torch.tensor(masked_img, dtype=torch.float32) / 255.
         panelize = torch.tensor(panelize)
 
-        print('masked_img', masked_img.shape)
-
         # load cam
         cam_params = json.load(open(info['json_path'], 'r'))[cam]
         data['camera'] = self.get_cam_info(cam_params, masked_img, panelize)
@@ -134,8 +128,6 @@ class AvatarDataloader(Dataset):
         fx, fy = intrinsic[0, 0], intrinsic[1, 1]
         cx, cy = intrinsic[:2, 2]
         FovY, FovX = focal2fov(fy, h), focal2fov(fx, w)
-
-        print('mask', mask.shape)
 
         # return Camera(R=R, T=T, FoVx=FovX, FoVy=FovY, fx=fx, fy=fy, cx=cx, cy=cy,
         #               image=image.permute(2,0,1), gt_alpha_mask=mask.permute(2,0,1), data_device='cpu')

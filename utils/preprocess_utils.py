@@ -54,8 +54,6 @@ class PrepareDataset:
             else:
                 print(f"Using existing '{self.target_root}'.")
                 return True
-                # print(f"Error: Permission denied. Unable to proceed because the folder '{self.target_root}' already exists.")
-                # sys.exit(1)  # Terminate the program with an error status
 
         os.makedirs(self.target_root, exist_ok=True)
         print(f"-------\nOutput folder created at {self.target_root}\n-------")
@@ -94,22 +92,8 @@ class PrepareDataset:
             
             cam_name = _cam.split('/')[-1]
 
-            # image = np.array(Image.open(_img)) / 255
-            # mask = np.array(Image.open(_lab)) / 255
-            # mask = label == mask_label[self.fg_label]
-            # if self.fg_label == 'full_body': mask = ~mask
-
-            # print('mask', mask.max(), mask.min())
-            # assert False
-
-            # use green background
-            # masked_img = image * mask[...,None] + np.array([0,1,0]) * (1 - mask[...,None])
-            # masked_img = (masked_img * 255).astype(np.uint8)
-
             image = Image.fromarray(np.array(masked_img, dtype=np.byte), "RGB")
             image.save(os.path.join(self._img_out, cam_name+'.png'))
-            # label = Image.fromarray(label)
-            # label.save(os.path.join(self._mask_out, cam_name+'.png')) 
             mask = (mask * 255).astype(np.uint8)
             mask = Image.fromarray(mask)
             mask.save(os.path.join(self._mask_out, cam_name+'.png.png'))
