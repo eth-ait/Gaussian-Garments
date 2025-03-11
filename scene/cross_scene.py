@@ -15,7 +15,6 @@ import random
 import json
 import socket
 import time
-from register_meta import check_if_template
 import trimesh
 import copy
 import shutil

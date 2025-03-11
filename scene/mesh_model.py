@@ -182,21 +182,6 @@ class MeshModel():
         loss = interpenetration.sum(-1)
         return loss
 
-    # def collision(self, eps: float = 1e-3):
-    #     # Compute distances in the current timestep
-    #     face_center = self.body.vertices[self.body.faces].mean(-2)
-    #     normals = FaceNormals(torch.tensor(self.body.vertices).unsqueeze(0), torch.tensor(self.body.faces).unsqueeze(0))[0]
-
-    #     nn_points = torch.tensor(face_center[self.collision_faces_ids]).cuda().squeeze(1)
-    #     nn_normals = normals[self.collision_faces_ids].cuda().squeeze(1)
-
-    #     distance = ((self.v - nn_points) * nn_normals).sum(dim=-1)
-    #     interpenetration = torch.maximum(eps - distance, torch.FloatTensor([0]).to('cuda'))
-
-    #     interpenetration = interpenetration.pow(3)
-    #     loss = interpenetration.sum(-1)
-    #     return loss
-
     def inertial(self, timestep=1/30):
         x_diff = self.tar_v - self.v.detach()
         num = (x_diff * self.v_mass * x_diff).sum(dim=-1).unsqueeze(1)
@@ -218,17 +203,3 @@ class MeshModel():
             loss['virtual_edge'] = self.panelize_virtual() * args.lambda_virtual
         # if inertial: loss['inertial'] = self.inertial() *  args.lambda_inertial
         return loss
-
-
-    # def pbd(self, v_prev, v_curr, f):
-    #     if not hasattr(self, "pbd_mesh") or not hasattr(self, "pbd_velocity"):
-    #         self.pbd_mesh = gmesh.TrianMesh(v_curr, np.array(self.vt.cpu(), dtype=np.float32), np.array(f.reshape(-1), dtype=np.int32), dim=3, rho=1.0)
-    #         self.pbd_velocity = ti.Vector.field(3, dtype=ti.f32, shape=v_curr.shape[0])
-    #         self.pbd_velocity.from_numpy(v_curr - v_prev)
-    #     else:
-    #         self.pbd_mesh.v_p.from_numpy(v_curr)
-    #         self.pbd_velocity.from_numpy(v_curr - v_prev)
-
-    #     v_out = solver.solve(self.pbd_mesh, self.pbd_velocity)
-
-    #     return torch.tensor(v_out).cuda()

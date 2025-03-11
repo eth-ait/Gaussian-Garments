@@ -14,8 +14,6 @@ import vtk
 vtk.vtkObject.GlobalWarningDisplayOff()
 
 from .parse_scan import parse_scan
-# if not "ait-server" in socket.gethostname():
-#     from src.common.parse_scan import parse_scan
 
 def remove_seperated_face(mesh):
     triangle_clusters, cluster_n_triangles, _ = (mesh.cluster_connected_triangles())
