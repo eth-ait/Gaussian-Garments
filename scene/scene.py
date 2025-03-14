@@ -67,10 +67,15 @@ class Scene:
         @param is_ff: bool, is first frame
         """
         self.current_frame = t
+        stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence
 
         # if not start optimizing from first frame
-        if not is_ff and self.gaussians.prev_xyz is None:
-            self.prep_start_from_frame(self.current_frame)
+        if not is_ff:
+            print("Loading Gaussian at frame frame_00000")
+            ply_path = stage2_path / "point_cloud" / "frame_00000" / "local_point_cloud.ply"
+            self.gaussians.load_ply(ply_path)
+            if self.gaussians.prev_xyz is None:
+                self.prep_start_from_frame(self.current_frame)
 
         # image, mask and camera
         self.dataloader.load_frame(t)
@@ -98,7 +103,6 @@ class Scene:
             random.shuffle(train_cam_info)  # Multi-res consistent random shuffling
             random.shuffle(test_cam_info)  # Multi-res consistent random shuffling
 
-        stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence
 
         if is_ff:
             store_cam(self.dataloader.cam_info, stage2_path)
@@ -128,24 +132,12 @@ class Scene:
             if not previous_path.exists():
                 previous_path = stage2_path / 'meshes' / f'frame_{self.current_frame-1:05d}.obj'
             previous = read_obj(previous_path)
-            # try:
-            #     previous = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-2}.obj')
-            # except:
-            #     previous = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-1}.obj')
             current = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-1:05d}.obj')
             self.gaussians.mesh.momentum_update(current['vertices'], current['faces'])
 
             self.gaussians.mesh.tar_v = torch.tensor(current['vertices'] + (current['vertices']-previous['vertices'])).cuda()
             self.gaussians.mesh.v = torch.tensor(current['vertices'] + (current['vertices']-previous['vertices'])).cuda()
-            # self.gaussians.mesh.v = torch.tensor(current['vertices']).cuda()
 
-            # if use_body:
-            #     self.gaussians.lbs_frame(t)
-
-
-            print("Loading Gaussian at frame frame_00000")
-            ply_path = stage2_path / "point_cloud" / "frame_00000" / "local_point_cloud.ply"
-            self.gaussians.load_ply(ply_path)
 
         self.gaussians.spatial_lr_scale = self.cameras_extent
 
@@ -161,8 +153,6 @@ class Scene:
         _mesh = stage2_path / 'meshes' / f'frame_{curr_t-1:05d}.obj'
         self.gaussians.mesh.v = torch.tensor(read_obj(_mesh)['vertices'], device='cuda')
         self.gaussians.update_face_coor()
-        _ply = stage2_path / "point_cloud" / f"frame_00000" / "local_point_cloud.ply"
-        self.gaussians.load_ply(_ply)
         self.post_each_frame(True)
 
     def post_each_frame(self, is_ff, num_knn=20):
@@ -187,7 +177,6 @@ class Scene:
         self.gaussians.prev_offset = self.gaussians.prev_xyz[self.gaussians.neighbor_indices] - self.gaussians.prev_xyz[:,None]
 
     def save(self, frame):
-        # self.gaussians.save_binding(os.path.join(point_cloud_path, "binding.pkl"))
         frame = int(frame)
 
         stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence

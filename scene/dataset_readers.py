@@ -57,7 +57,6 @@ class Dataloader():
         # locate sequence
         seq_path = Path(DEFAULTS.data_root) / args.subject / args.sequence
 
-
         # locate camera
         self.cam_paths = sorted([path for path in seq_path.iterdir() if path.is_dir() and path.name != 'smplx'])
         self.camera_params = json.load(open(os.path.join(seq_path, 'cameras.json'), 'r'))
@@ -67,6 +66,11 @@ class Dataloader():
         img_files = sorted((self.cam_paths[0]/DEFAULTS.rgb_images).glob("*.png"))
         gm_files = sorted((self.cam_paths[0]/DEFAULTS.garment_masks).glob("*.png"))
         fg_files = sorted((self.cam_paths[0]/DEFAULTS.foreground_masks).glob("*.png"))
+
+        # if args.template_frame is not None:
+        #     img_files = [img_files[args.template_frame]]
+        #     gm_files = [gm_files[args.template_frame]]
+        #     fg_files = [fg_files[args.template_frame]]
 
         self._img_names = [img.name for img in img_files]
         self._gm_names = [gm.name for gm in gm_files]

@@ -245,14 +245,7 @@ class MeshGaussianModel(GaussianModel):
         self.max_radii2D = torch.zeros((self._xyz.shape[0]), device="cuda")
         self.mesh.v = nn.Parameter(self.mesh.v.clone().detach()).requires_grad_(False)
 
-    # def construct_list_of_attributes(self):
-    #     l = super().construct_list_of_attributes()
-    #     l.append('binding')
-    #     return l
 
-    def save_binding(self, path):
-        with open(path, 'wb') as f:
-            pickle.dump(self.binding, f)
 
     def save_ply(self, path, save_local = False):
         mkdir_p(os.path.dirname(path))

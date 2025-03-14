@@ -133,6 +133,8 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--template_seq', type=str, default='')
     parser.add_argument('-q', '--sequence', type=str, required=True, default='')
 
+    parser.add_argument('-tf', '--template_frame', type=int, default=None)
+
     parser.add_argument("--first_frame_iterations", type=int, default=10000)
     parser.add_argument("--first_frame_iterations_cross", type=int, default=15000)
     parser.add_argument("--other_frame_iterations", type=int, default=5000)
@@ -177,8 +179,9 @@ if __name__ == "__main__":
     stage2_path = Path(args.subject_out) / DEFAULTS.stage2 / args.sequence
 
     # reconstruct and optimize
-    for t in range(dataloader._len):
-        is_first_frame = (t==0)
+    frames_iterater = range(dataloader._len) if args.template_frame is None else [args.template_frame]
+    for t in frames_iterater:
+        is_first_frame = (t==0) or (args.template_frame is not None)
         collision_iteration = args.ff_collision_iteration if is_first_frame else args.collision_iteration
         iterations = args.first_frame_iterations + collision_iteration if is_first_frame else args.other_frame_iterations
 
@@ -192,7 +195,7 @@ if __name__ == "__main__":
             continue
         ############ DEBUG ############
 
-
+        
         scene.prepare_frame(t, is_first_frame)
         gaussians.training_setup(opt, is_first_frame and args.is_template_seq)
         iter_start = torch.cuda.Event(enable_timing = True)
@@ -204,6 +207,7 @@ if __name__ == "__main__":
         desc = "{} frame{} --> {}/{}".format("Reconstruct" if is_first_frame else "Optimize", scene.current_frame, t+1, dataloader._len)
         progress_bar = tqdm(range(iterations), desc=desc)
 
+        iterations = 10
         for iter in range(1, iterations+1):
             use_body = iter > iterations - collision_iteration
             # first frame remove collision

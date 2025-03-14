@@ -62,7 +62,14 @@ class crossScene(Scene):
 
         # if not start optimizing from first frame
         if not is_ff and self.gaussians.prev_xyz is None:
-            self.prep_start_from_frame(self.current_frame)
+                self.prep_start_from_frame(self.current_frame)
+
+        cross_from_glob = self.args.cross_from / 'point_cloud' 
+        # _ply_path = sorted(glob.glob(cross_from_glob))[0]
+        _ply_path = sorted(cross_from_glob.glob('frame_*'))[0]
+        print("Loading Gaussian at frame {}".format(_ply_path.name))
+        ply_path = _ply_path / "local_point_cloud.ply"
+        self.gaussians.load_ply(ply_path)
 
         # image, mask and camera
         self.dataloader.load_frame(t)
@@ -98,12 +105,12 @@ class crossScene(Scene):
             # first frame ICP init
             self.gaussians.mesh.v = self.sparse_icp()
 
-            cross_from_glob = self.args.cross_from / 'point_cloud' 
-            # _ply_path = sorted(glob.glob(cross_from_glob))[0]
-            _ply_path = sorted(cross_from_glob.glob('frame_*'))[0]
-            print("Loading Gaussian at frame {}".format(_ply_path.name))
-            ply_path = _ply_path / "local_point_cloud.ply"
-            self.gaussians.load_ply(ply_path)
+            # cross_from_glob = self.args.cross_from / 'point_cloud' 
+            # # _ply_path = sorted(glob.glob(cross_from_glob))[0]
+            # _ply_path = sorted(cross_from_glob.glob('frame_*'))[0]
+            # print("Loading Gaussian at frame {}".format(_ply_path.name))
+            # ply_path = _ply_path / "local_point_cloud.ply"
+            # self.gaussians.load_ply(ply_path)
 
             # body
             body = o3d.io.read_triangle_mesh(self.dataloader.smplx_list[t])
@@ -144,9 +151,6 @@ class crossScene(Scene):
 
 
             _ply_idx = self.dataloader.start_frame
-            print("Loading Gaussian at frame {}".format(_ply_idx))
-            ply_path = stage2_path / "point_cloud" / ("frame_" + str(_ply_idx)) / "local_point_cloud.ply"
-            self.gaussians.load_ply(ply_path)
 
         self.gaussians.spatial_lr_scale = self.cameras_extent
 
