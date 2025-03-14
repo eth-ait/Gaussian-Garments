@@ -256,26 +256,9 @@ class AvatarGaussianModel(MeshGaussianModel):
         # Compute the ray intersections.
         EPSILON = 1e-3 # max distance between intersection point and gaussians
         ans = scene.cast_rays(rays)
-        # dist_sq = torch.tensor(np.array(ans['t_hit'].numpy(), dtype=np.float32), device=device)
-        # invis_mask = dist_sq + EPSILON < norm_d.squeeze(-1)
-        # vis_mask = ~invis_mask
 
         f_id = torch.tensor(np.array(ans['primitive_ids'].numpy(), dtype=np.int32))
         vis_mask = self.binding.cpu() == f_id
-
-        # breakpoint()
-        # pcd = o3d.geometry.PointCloud()
-        # pcd.points =  o3d.utility.Vector3dVector(self.get_xyz[vis_mask].detach().cpu().numpy())
-        # pcd.colors = o3d.utility.Vector3dVector(np.array([[0.4,1,0.4]]*len(pcd.points)))
-
-        # pcd2 = o3d.geometry.PointCloud()
-        # pcd2.points =  o3d.utility.Vector3dVector(self.get_xyz[~vis_mask].detach().cpu().numpy())
-        # pcd2.colors = o3d.utility.Vector3dVector(np.array([[0.8,0.8,0.8]]*len(pcd2.points)))
-
-        # cam = o3d.geometry.PointCloud()
-        # cam.points =  o3d.utility.Vector3dVector(camera[None].detach().cpu().numpy())
-        # cam.colors = o3d.utility.Vector3dVector(np.array([[1,0,0]]))
-        # o3d.visualization.draw_geometries([pcd, pcd2, cam])
 
         return vis_mask.to(device)
         

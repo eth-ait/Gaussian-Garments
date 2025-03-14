@@ -57,47 +57,57 @@ class Dataloader():
         self.white_background = args.white_background
 
         # locate sequence
-        seq_path = f'{DEFAULTS.data_root}/{args.subject}/{args.sequence}'
+        # seq_path = f'{DEFAULTS.data_root}/{args.subject}/{args.sequence}'
+        seq_path = Path(DEFAULTS.data_root) / args.subject / args.sequence
 
 
         # locate camera
-        self.cam_paths = sorted([os.path.join(seq_path, fn) for fn in os.listdir(seq_path) if '00' in fn])
+        # self.cam_paths = sorted([os.path.join(seq_path, fn) for fn in os.listdir(seq_path) if '00' in fn])
+        self.cam_paths = sorted([path for path in seq_path.iterdir() if path.is_dir() and path.name != 'smplx'])
         self.camera_params = json.load(open(os.path.join(seq_path, 'cameras.json'), 'r'))
         self.cam_num = len(self.cam_paths)
         # frame info
 
-        glob_str = os.path.join(self.cam_paths[0], f"{DEFAULTS.rgb_images}/*.png")
+        # glob_str = os.path.join(self.cam_paths[0], f"{DEFAULTS.rgb_images}/*.png")
 
-        _imgs = sorted(glob.glob(glob_str))
+        # _imgs = sorted(glob.glob(glob_str))
 
-        min_frame = int(_imgs[0].split('/')[-1].split(".png")[0])
-        self.start_frame = min_frame # if args.template_frame is None else int(args.template_frame)
-        self.frame_num = len(_imgs)
+        # min_frame = int(_imgs[0].split('/')[-1].split(".png")[0])
+        # self.start_frame = min_frame # if args.template_frame is None else int(args.template_frame)
+
+        self._img_files = sorted((self.cam_paths[0]/DEFAULTS.rgb_images).glob("*.png"))
+        self._gm_files = sorted((self.cam_paths[0]/DEFAULTS.garment_masks).glob("*.png"))
+        self._fg_files = sorted((self.cam_paths[0]/DEFAULTS.foreground_masks).glob("*.png"))
+        self._len = len(self._img_files)
         # smplx info
         self.smplx_list = sorted(glob.glob(os.path.join(seq_path, "smplx/*.ply")))
 
     def __len__(self,):
-        return self.frame_num
+        return self._len
     
 
     def load_frame(self, idx):
-        frame_idx = self.start_frame + idx # frame filename
+        # frame_idx = self.start_frame + idx # frame filename
         camera_infos = []
 
         # process all cameras
         for idx, _cam in enumerate(self.cam_paths):
-            print(f"Reading frame {frame_idx} camera {idx+1}/{self.cam_num} ")
+            print(f"Reading frame #{idx} camera {idx+1}/{self.cam_num} ")
 
-            _img = os.path.join(_cam, DEFAULTS.rgb_images,f"{frame_idx:05d}.png")
-            _gmask = os.path.join(_cam, DEFAULTS.garment_masks,f"{frame_idx:05d}.png")
-            _fgmask = os.path.join(_cam, DEFAULTS.foregroung_masks,f"{frame_idx:05d}.png")
+            _img = self._img_files[idx]
+            _gmask = self._gm_files[idx]
+            _fgmask = self._fg_files[idx]
+
+            # _img = os.path.join(_cam, DEFAULTS.rgb_images,f"{frame_idx:05d}.png")
+            # _gmask = os.path.join(_cam, DEFAULTS.garment_masks,f"{frame_idx:05d}.png")
+            # _fgmask = os.path.join(_cam, DEFAULTS.foreground_masks,f"{frame_idx:05d}.png")
             bg = np.array([1,1,1]) if self.white_background else np.array([0, 0, 0])
             image_dict = load_masked_image(_img, _gmask, _fgmask, bg)
             masked_img = image_dict['masked_img'] 
             penalized_mask = image_dict['penalized_mask']
             width, height = masked_img.shape[1], masked_img.shape[0]
 
-            cam_name = _cam.split('/')[-1]
+            cam_name = _cam.name
 
             # get camera intrinsic and extrinsic matrices
             intrinsic = np.asarray(self.camera_params[cam_name]["intrinsics"])

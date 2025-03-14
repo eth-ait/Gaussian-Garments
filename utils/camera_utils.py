@@ -53,10 +53,10 @@ def loadCam(args, id, cam_info, resolution_scale):
                   image=gt_image, gt_alpha_mask=loaded_mask,
                   image_name=cam_info.image_name, uid=id, data_device=args.data_device)
 
-def cameraList_from_camInfos(cam_infos, resolution_scale, args):
+def cameraList_from_camInfo(cam_info, resolution_scale, args):
     camera_list = []
 
-    for id, c in enumerate(cam_infos):
+    for id, c in enumerate(cam_info):
         camera_list.append(loadCam(args, id, c, resolution_scale))
 
     return camera_list

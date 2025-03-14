@@ -35,7 +35,7 @@ from scene.dataset_readers import Dataloader
 from arguments import ModelParams
 # from convert4d import prepare_4ddress, colmap
 from scene.colmap_loader import read_points3D_binary
-from utils.camera_utils import cameraList_from_camInfos, camera_to_JSON
+from utils.camera_utils import cameraList_from_camInfo, camera_to_JSON
 from utils.graphics_utils import getWorld2View2
 from utils.io_utils import fetchPly, read_obj
 from utils.general_utils import o3d_knn
@@ -80,9 +80,9 @@ class crossScene(Scene):
 
         for resolution_scale in resolution_scales:
             print("Loading Training Cameras")
-            self.train_cameras[resolution_scale] = cameraList_from_camInfos(train_cam_infos, resolution_scale, self.args)
+            self.train_cameras[resolution_scale] = cameraList_from_camInfo(train_cam_infos, resolution_scale, self.args)
             print("Loading Test Cameras")
-            self.test_cameras[resolution_scale] = cameraList_from_camInfos(test_cam_infos, resolution_scale, self.args)
+            self.test_cameras[resolution_scale] = cameraList_from_camInfo(test_cam_infos, resolution_scale, self.args)
 
         nerf_normalization = getNerfppNorm(train_cam_infos)
         self.cameras_extent = nerf_normalization["radius"]

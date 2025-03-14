@@ -38,7 +38,7 @@ DEFAULTS['stage3'] = 'stage3'
 
 DEFAULTS['rgb_images'] = 'rgb_images'
 DEFAULTS['garment_masks'] = 'garment_masks'
-DEFAULTS['foregroung_masks'] = 'foregroung_masks'
+DEFAULTS['foreground_masks'] = 'foreground_masks'
 
 # turns the dictionary into a Munch object (so you can use e.g. DEFAULTS.data_root)
 DEFAULTS = munchify(DEFAULTS)

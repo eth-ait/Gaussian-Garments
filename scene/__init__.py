@@ -24,7 +24,7 @@ from scene.dataset_readers import Dataloader
 from scene.cross_scene import crossScene
 from scene.scene import Scene, getNerfppNorm, store_cam
 from arguments import ModelParams
-from utils.camera_utils import cameraList_from_camInfos, camera_to_JSON
+from utils.camera_utils import cameraList_from_camInfo, camera_to_JSON
 from utils.graphics_utils import getWorld2View2
 from utils.io_utils import fetchPly, read_obj
 from utils.general_utils import o3d_knn

@@ -10,7 +10,7 @@ from scene.mesh_gaussian_model import MeshGaussianModel
 from scene.gaussian_model import GaussianModel
 from scene.dataset_readers import Dataloader
 from arguments import ModelParams
-from utils.camera_utils import cameraList_from_camInfos, camera_to_JSON
+from utils.camera_utils import cameraList_from_camInfo, camera_to_JSON
 from utils.defaults import DEFAULTS
 from utils.graphics_utils import getWorld2View2
 from utils.io_utils import fetchPly, read_obj
@@ -66,7 +66,7 @@ class Scene:
         @param t: int, frame index, starts from 0
         @param is_ff: bool, is first frame
         """
-        self.current_frame = self.dataloader.start_frame + t
+        self.current_frame = t
 
         # if not start optimizing from first frame
         if not is_ff and self.gaussians.prev_xyz is None:
@@ -88,9 +88,9 @@ class Scene:
 
         for resolution_scale in resolution_scales:
             print("Loading Training Cameras")
-            self.train_cameras[resolution_scale] = cameraList_from_camInfos(train_cam_infos, resolution_scale, self.args)
+            self.train_cameras[resolution_scale] = cameraList_from_camInfo(train_cam_infos, resolution_scale, self.args)
             print("Loading Test Cameras")
-            self.test_cameras[resolution_scale] = cameraList_from_camInfos(test_cam_infos, resolution_scale, self.args)
+            self.test_cameras[resolution_scale] = cameraList_from_camInfo(test_cam_infos, resolution_scale, self.args)
 
         nerf_normalization = getNerfppNorm(train_cam_infos)
         self.cameras_extent = nerf_normalization["radius"]

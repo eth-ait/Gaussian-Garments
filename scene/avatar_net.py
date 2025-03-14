@@ -18,11 +18,7 @@ class AvatarNet(nn.Module):
         input_size = args.texture_size
         output_size = args.texture_size
         style_dim, n_mlp = args.texture_size, 2        
-        self.no_xyz = args.no_xyz
-        if args.no_xyz: 
-            self.shadow_net = SWGAN_unet(input_size, 4, (args.sh_degree+1)**2 * 3, output_size, style_dim, n_mlp)
-        else: 
-            self.shadow_net = SWGAN_unet(input_size, 4, (args.sh_degree+1)**2 * 3 + 3, output_size, style_dim, n_mlp)
+        self.shadow_net = SWGAN_unet(input_size, 4, (args.sh_degree+1)**2 * 3 + 3, output_size, style_dim, n_mlp)
 
         self.shadow_style = torch.ones([1, style_dim], dtype=torch.float32, device='cuda') / np.sqrt(style_dim)
         self.viewdir_net = nn.Sequential(
@@ -82,16 +78,10 @@ class AvatarNet(nn.Module):
         combined = torch.cat([ambient, normalized_nc])
         shadow_out = self.shadow_net([self.shadow_style], combined[None], randomize_noise=False, view_feature=view_feature)[0].squeeze(0).permute(1,2,0)
 
-        if self.no_xyz:
-            # only rgb
-            self.gaussians.local_xyz = self.gaussians._xyz
-            shadow_out = shadow_out[self.gaussians.gaussian_mask].reshape(self.gaussians.num_gs,-1,3)
-            self.gaussians.shs = self.gaussians.get_features + shadow_out
-        else:    
-            # rgb + xyz
-            self.gaussians.local_xyz = self.gaussians._xyz + shadow_out[self.gaussians.gaussian_mask][:,:3]
-            shadow_out = shadow_out[self.gaussians.gaussian_mask][:,3:].reshape(self.gaussians.num_gs,-1,3)
-            self.gaussians.shs = self.gaussians.get_features + shadow_out
+        # rgb + xyz
+        self.gaussians.local_xyz = self.gaussians._xyz + shadow_out[self.gaussians.gaussian_mask][:,:3]
+        shadow_out = shadow_out[self.gaussians.gaussian_mask][:,3:].reshape(self.gaussians.num_gs,-1,3)
+        self.gaussians.shs = self.gaussians.get_features + shadow_out
 
         return shadow_out, visible_mask
 

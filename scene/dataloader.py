@@ -45,7 +45,7 @@ class AvatarDataloader(Dataset):
         
 
         # collect info across whole dataset
-        self.dataset_infos = {}
+        self.dataset_info = {}
         self.frame_collection = []
         for seq_path in sequence_dirs:
             seq_name = seq_path.name
@@ -53,7 +53,8 @@ class AvatarDataloader(Dataset):
             print(f"[Locating] {seq_path}")
             info = {}
             # camera info
-            cam_folders = sorted(list(seq_path.glob('00*')))
+            # cam_folders = sorted(list(seq_path.glob('00*')))
+            cam_folders = sorted([path for path in seq_path.iterdir() if path.is_dir() and path.name != 'smplx'])
 
             if args.eval:
                 info['cam_names'] = [n.name for idx, n in enumerate(cam_folders) if idx % args.llffhold != 0]
@@ -69,7 +70,7 @@ class AvatarDataloader(Dataset):
             info['start_frame'] = int(_imgs[0].stem)
             info['frame_num'] = len(_imgs)
             # collect info
-            self.dataset_infos[seq_name] = info
+            self.dataset_info[seq_name] = info
             self.frame_collection += [(seq_name, f, c) for f in range(info['frame_num']) for c in info['cam_names']]
 
         if args.shuffle: random.shuffle(self.frame_collection)
@@ -81,7 +82,7 @@ class AvatarDataloader(Dataset):
         return self.load_frame(*self.frame_collection[index])
 
     def load_frame(self, name, frame, cam):
-        info = self.dataset_infos[name]
+        info = self.dataset_info[name]
         data = {}
 
         data['current_seq'] = name
@@ -92,7 +93,7 @@ class AvatarDataloader(Dataset):
         _folder = os.path.join(os.path.dirname(info['json_path']),cam)
         _img = os.path.join(_folder, DEFAULTS.rgb_images, f"{data['current_frame']:05d}.png")
         _gmask = os.path.join(_folder, DEFAULTS.garment_masks,f"{data['current_frame']:05d}.png")
-        _fgmask = os.path.join(_folder, DEFAULTS.foregroung_masks,f"{data['current_frame']:05d}.png")
+        _fgmask = os.path.join(_folder, DEFAULTS.foreground_masks,f"{data['current_frame']:05d}.png")
         image_dict = load_masked_image(_img, _gmask, _fgmask, data['bg'])
         masked_img = image_dict['masked_img'] 
         masked_img = torch.tensor(masked_img, dtype=torch.float32) / 255.

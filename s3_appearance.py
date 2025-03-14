@@ -69,7 +69,6 @@ if __name__ == "__main__":
     parser.add_argument("--shuffle", action="store_true")
     parser.add_argument("--random_bg", action="store_true")
     parser.add_argument("--blur_mask", action="store_true")
-    parser.add_argument('--no_xyz', action='store_true') # TODO: is it for ablation study?
     parser.add_argument('--llffhold', type=int, default=12)
     args = parser.parse_args(sys.argv[1:])
 

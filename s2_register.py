@@ -99,7 +99,7 @@ def saver(viewer, gaussians, scene, args, bg):
     # save mesh
     mesh_path = stage2_path / "meshes"
     os.makedirs(mesh_path, exist_ok=True)
-    gaussians.save_mesh(os.path.join(mesh_path, f"frame_{current_frame}.obj"))
+    gaussians.save_mesh(os.path.join(mesh_path, f"frame_{current_frame:05d}.obj"))
 
     # store rendered imgs
     render_cam = scene.getTrainCameras()[0]
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     stage2_path = Path(args.subject_out) / DEFAULTS.stage2 / args.sequence
 
     # reconstruct and optimize
-    for t in range(dataloader.frame_num):
+    for t in range(dataloader._len):
         is_first_frame = (t==0)
         collision_iteration = args.ff_collision_iteration if is_first_frame else args.collision_iteration
         iterations = args.first_frame_iterations + collision_iteration if is_first_frame else args.other_frame_iterations
@@ -187,7 +187,7 @@ if __name__ == "__main__":
         if is_first_frame and (stage2_path / "point_cloud").exists(): 
             continue 
         # skip if we are starting from a specific frame
-        if dataloader.start_frame + t < args.start_from:
+        if t < args.start_from:
             continue
         ############ DEBUG ############
 
@@ -200,7 +200,7 @@ if __name__ == "__main__":
         background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
         viewpoint_stack = None
 
-        desc = "{} frame{} --> {}/{}".format("Reconstruct" if is_first_frame else "Optimize", scene.current_frame, t+1, dataloader.frame_num)
+        desc = "{} frame{} --> {}/{}".format("Reconstruct" if is_first_frame else "Optimize", scene.current_frame, t+1, dataloader._len)
         progress_bar = tqdm(range(iterations), desc=desc)
 
         for iter in range(1, iterations+1):
