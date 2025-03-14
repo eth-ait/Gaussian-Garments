@@ -73,8 +73,6 @@ class PrepareDataset:
 
         cam_paths = sorted([path for path in self.source_root.iterdir() if path.is_dir() and path.name != 'smplx'])
         
-        # cam_paths = sorted([os.path.join(self.source_root, fn) for fn in os.listdir(self.source_root) if '00' in fn])
-        # _imgs = sorted(glob.glob(os.path.join(cam_paths[0], f"{DEFAULTS.rgb_images}/*.png")))
         _imgs = sorted((cam_paths[0]/DEFAULTS.rgb_images).glob("*.png"))
         start_img_name = _imgs[0].name
 
@@ -82,16 +80,8 @@ class PrepareDataset:
         start_gmask_name = _gmasks[0].name
 
         _fgmasks = sorted((cam_paths[0]/DEFAULTS.foreground_masks).glob("*.png"))
-        print('cam_paths[0]/DEFAULTS.foreground_masks', cam_paths[0]/DEFAULTS.foreground_masks)
         start_fgmask_name = _fgmasks[0].name
 
-        print('start_img_name', start_img_name)
-        print('start_gmask_name', start_gmask_name)
-        print('start_fgmask_name', start_fgmask_name)
-        # start_frame = int(_imgs[0].split('/')[-1].split(".png")[0])
-        # start_frame = _imgs[0].split('/')[-1].split(".png")[0]
-        # print("start_frame", start_frame)
-        # assert False
         cam_num = len(cam_paths)
 
         for idx, _cam in enumerate(cam_paths):
@@ -99,9 +89,6 @@ class PrepareDataset:
             _img = _cam / DEFAULTS.rgb_images / start_img_name
             _gmask = _cam / DEFAULTS.garment_masks / start_gmask_name
             _fgmask = _cam / DEFAULTS.foreground_masks / start_fgmask_name
-            # _img = os.path.join(_cam, DEFAULTS.rgb_images, f"{start_frame:05d}.png")
-            # _gmask = os.path.join(_cam, DEFAULTS.garment_masks, f"{start_frame:05d}.png")
-            # _fgmask = os.path.join(_cam, DEFAULTS.foreground_masks, f"{start_frame:05d}.png")
             image_dict = load_masked_image(_img, _gmask, _fgmask, np.array([0,1,0]))
             mask = image_dict['mask']
             masked_img = image_dict['masked_img']

@@ -83,17 +83,16 @@ class Dataloader():
         return self._len
     
 
-    def load_frame(self, idx):
-        # frame_idx = self.start_frame + idx # frame filename
+    def load_frame(self, frame):
         camera_info_list = []
 
         # process all cameras
-        for idx, _cam in enumerate(self.cam_paths):
-            print(f"Reading frame #{idx} camera {idx+1}/{self.cam_num} ")
+        for c_idx, _cam in enumerate(self.cam_paths):
+            print(f"Reading frame #{c_idx} camera {c_idx+1}/{self.cam_num} ")
 
-            _img_name = self._img_names[idx]
-            _gmask_name = self._gm_names[idx]
-            _fgmask_name = self._fg_names[idx]
+            _img_name = self._img_names[frame]
+            _gmask_name = self._gm_names[frame]
+            _fgmask_name = self._fg_names[frame]
 
             _img = _cam / DEFAULTS.rgb_images / _img_name
             _gmask = _cam / DEFAULTS.garment_masks / _gmask_name
@@ -119,7 +118,7 @@ class Dataloader():
                 
 
             # append camera_info        
-            camera_info = CameraInfo(uid=idx, R=R, T=T, FovY=FovY, FovX=FovX,  fx=fx, fy=fy, cx=cx, cy=cy, image=image, mask=penalized_mask,
+            camera_info = CameraInfo(uid=c_idx, R=R, T=T, FovY=FovY, FovX=FovX,  fx=fx, fy=fy, cx=cx, cy=cy, image=image, mask=penalized_mask,
                                     image_path=_img, image_name=cam_name, width=width, height=height)
             camera_info_list.append(camera_info)
 
