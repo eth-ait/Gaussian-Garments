@@ -123,12 +123,12 @@ class crossScene(Scene):
             body.remove_vertices_by_index(self.gaussians.hand_list)
             self.gaussians.mesh.init_body(body)
 
-            print("Loading Mesh at frame {}".format(self.current_frame-1))
-            previous_path = stage2_path / 'meshes' / f'frame_{self.current_frame-2}.obj'
+            print(f"Loading Mesh at frame {self.current_frame-1:05d}")
+            previous_path = stage2_path / 'meshes' / f'frame_{self.current_frame-2:05d}.obj'
             if not previous_path.exists():
-                previous_path = stage2_path / 'meshes' / f'frame_{self.current_frame-1}.obj'
+                previous_path = stage2_path / 'meshes' / f'frame_{self.current_frame-1:05d}.obj'
             previous = read_obj(previous_path)
-            current = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-1}.obj')
+            current = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-1:05d}.obj')
             self.gaussians.mesh.momentum_update(current['vertices'], current['faces'])
 
             self.gaussians.mesh.tar_v = torch.tensor(current['vertices'] + (current['vertices']-previous['vertices'])).cuda()
