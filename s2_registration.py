@@ -261,6 +261,25 @@ if __name__ == "__main__":
             else:
                 loss_dict.update(gaussians.mesh.get_energy_loss(args, use_body))
 
+            # gt_image_np = gt_image.detach().cpu().numpy().transpose(1, 2, 0)
+            # image_np = image.detach().cpu().numpy().transpose(1, 2, 0)
+            # mask_np = mask.detach().cpu().numpy().transpose(1, 2, 0) 
+            # mask_np = np.concatenate([mask_np, mask_np, mask_np], axis=-1)
+            # # print('mask_np', mask_np.shape)
+
+            # temp_folder = Path('/local/home/agrigorev/Data/temp/s2_debug')
+            # gt_image_path = temp_folder / 'gt' / f'{iter:05d}.png'
+            # image_path = temp_folder / 'img' / f'{iter:05d}.png'
+            # mask_path = temp_folder / 'mask' / f'{iter:05d}.png'
+
+            # gt_image_path.parent.mkdir(parents=True, exist_ok=True)
+            # image_path.parent.mkdir(parents=True, exist_ok=True)
+            # mask_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Image.fromarray((gt_image_np * 255).astype(np.uint8)).save(gt_image_path)
+            # Image.fromarray((image_np * 255).astype(np.uint8)).save(image_path)
+            # Image.fromarray((mask_np * 255).astype(np.uint8)).save(mask_path)
+
             loss = 0
             for k, v in loss_dict.items():
                 loss = loss + v

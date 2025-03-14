@@ -128,20 +128,10 @@ class crossScene(Scene):
             if not previous_path.exists():
                 previous_path = stage2_path / 'meshes' / f'frame_{self.current_frame-1}.obj'
             previous = read_obj(previous_path)
-            # try:
-            #     previous = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-2}.obj')
-            # except:
-            #     previous = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-1}.obj')
             current = read_obj(stage2_path / 'meshes' / f'frame_{self.current_frame-1}.obj')
             self.gaussians.mesh.momentum_update(current['vertices'], current['faces'])
 
             self.gaussians.mesh.tar_v = torch.tensor(current['vertices'] + (current['vertices']-previous['vertices'])).cuda()
-            self.gaussians.mesh.v = torch.tensor(current['vertices'] + (current['vertices']-previous['vertices'])).cuda()
-            # self.gaussians.mesh.v = torch.tensor(current['vertices']).cuda()
-
-            # if use_body:
-            #     self.gaussians.lbs_frame(t)
-
 
             print("Loading Gaussian at frame_00000")
             ply_path = stage2_path / "point_cloud" / "frame_00000" / "local_point_cloud.ply"
