@@ -72,28 +72,28 @@ class crossScene(Scene):
         self.test_cameras = {}
 
         if self.args.eval:
-            train_cam_infos = [c for idx, c in enumerate(self.dataloader.cam_infos) if idx % self.args.llffhold != 0]
-            test_cam_infos = [c for idx, c in enumerate(self.dataloader.cam_infos) if idx % self.args.llffhold == 0]
+            train_cam_inf = [c for idx, c in enumerate(self.dataloader.cam_info) if idx % self.args.llffhold != 0]
+            test_cam_info = [c for idx, c in enumerate(self.dataloader.cam_info) if idx % self.args.llffhold == 0]
         else:
-            train_cam_infos = self.dataloader.cam_infos
-            test_cam_infos = []
+            train_cam_inf = self.dataloader.cam_info
+            test_cam_info = []
 
         for resolution_scale in resolution_scales:
             print("Loading Training Cameras")
-            self.train_cameras[resolution_scale] = cameraList_from_camInfo(train_cam_infos, resolution_scale, self.args)
+            self.train_cameras[resolution_scale] = cameraList_from_camInfo(train_cam_inf, resolution_scale, self.args)
             print("Loading Test Cameras")
-            self.test_cameras[resolution_scale] = cameraList_from_camInfo(test_cam_infos, resolution_scale, self.args)
+            self.test_cameras[resolution_scale] = cameraList_from_camInfo(test_cam_info, resolution_scale, self.args)
 
-        nerf_normalization = getNerfppNorm(train_cam_infos)
+        nerf_normalization = getNerfppNorm(train_cam_inf)
         self.cameras_extent = nerf_normalization["radius"]
         if shuffle:
-            random.shuffle(train_cam_infos)  # Multi-res consistent random shuffling
-            random.shuffle(test_cam_infos)  # Multi-res consistent random shuffling
+            random.shuffle(train_cam_inf)  # Multi-res consistent random shuffling
+            random.shuffle(test_cam_info)  # Multi-res consistent random shuffling
 
         stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence
 
         if is_ff:
-            store_cam(self.dataloader.cam_infos, stage2_path)
+            store_cam(self.dataloader.cam_info, stage2_path)
             print(f"Cross from model {self.args.cross_from}")
             # first frame ICP init
             self.gaussians.mesh.v = self.sparse_icp()

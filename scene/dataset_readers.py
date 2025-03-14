@@ -88,7 +88,7 @@ class Dataloader():
 
     def load_frame(self, idx):
         # frame_idx = self.start_frame + idx # frame filename
-        camera_infos = []
+        camera_info_list = []
 
         # process all cameras
         for idx, _cam in enumerate(self.cam_paths):
@@ -123,9 +123,9 @@ class Dataloader():
             # append camera_info        
             camera_info = CameraInfo(uid=idx, R=R, T=T, FovY=FovY, FovX=FovX,  fx=fx, fy=fy, cx=cx, cy=cy, image=image, mask=penalized_mask,
                                     image_path=_img, image_name=cam_name, width=width, height=height)
-            camera_infos.append(camera_info)
+            camera_info_list.append(camera_info)
 
-        self.cam_infos = sorted(camera_infos.copy(), key = lambda x : x.image_name)
+        self.cam_info = sorted(camera_info_list.copy(), key = lambda x : x.image_name)
     
     
 
