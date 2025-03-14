@@ -76,15 +76,16 @@ class PrepareDataset:
         # mask_label = dict(zip(SURFACE_LABELS, GRAY_VALUES))
 
         cam_paths = sorted([os.path.join(self.source_root, fn) for fn in os.listdir(self.source_root) if '00' in fn])
-        _imgs = sorted(glob.glob(os.path.join(cam_paths[0], "capture_images/*.png")))
+        _imgs = sorted(glob.glob(os.path.join(cam_paths[0], f"{DEFAULTS.rgb_images}/*.png")))
         start_frame = int(_imgs[0].split('/')[-1].split(".png")[0])
         cam_num = len(cam_paths)
 
         for idx, _cam in enumerate(cam_paths):
             print(f"Reading frame {start_frame} camera {idx+1}/{cam_num} ")
-            _img = os.path.join(_cam,"capture_images",f"{start_frame:05d}.png")
-            _lab = os.path.join(_cam,"capture_labels",f"{start_frame:05d}.png")
-            image_dict = load_masked_image(_img, _lab, np.array([0,1,0]))
+            _img = os.path.join(_cam, DEFAULTS.rgb_images, f"{start_frame:05d}.png")
+            _gmask = os.path.join(_cam, DEFAULTS.garment_masks, f"{start_frame:05d}.png")
+            _fgmask = os.path.join(_cam, DEFAULTS.foregroung_masks, f"{start_frame:05d}.png")
+            image_dict = load_masked_image(_img, _gmask, _fgmask, np.array([0,1,0]))
             mask = image_dict['mask']
             masked_img = image_dict['masked_img']
 

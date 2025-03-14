@@ -21,7 +21,6 @@ from scene.avatar_gaussian_model import AvatarGaussianModel
 from scene.mesh_gaussian_model import MeshGaussianModel
 from scene.gaussian_model import GaussianModel
 from scene.dataset_readers import Dataloader
-from scene.avatar_readers import AvatarDataloader
 from scene.cross_scene import crossScene
 from scene.scene import Scene, getNerfppNorm, store_cam
 from arguments import ModelParams

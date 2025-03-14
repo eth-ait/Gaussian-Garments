@@ -111,7 +111,7 @@ class OptimizationParams(ParamGroup):
         self.random_background = False
 
         self.only_foreground_loss = True
-        # only panelize foreground zones during training
+        # only penalize foreground zones during training
 
         super().__init__(parser, "Optimization Parameters")
 

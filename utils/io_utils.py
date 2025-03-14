@@ -87,16 +87,21 @@ def storePly(path, xyz, rgb):
     ply_data.write(path)
 
 
-def load_masked_image(image_path, mask_path, bg_color=None):
+def load_masked_image(image_path, garment_mask_path, fg_mask_path, bg_color=None):
     if bg_color is None:
         bg_color = np.array([0, 1, 0])
     image = np.array(Image.open(image_path)) / 255
-    mask = np.array(Image.open(mask_path)) / 255
-    masked_img = image * mask[...,None] + bg_color * (1 - mask[...,None])
+    garment_mask = np.array(Image.open(garment_mask_path)) / 255
+    fg_mask = np.array(Image.open(fg_mask_path)) / 255
+    bg_mask = 1 - fg_mask
+    penalized_mask = (garment_mask + bg_mask).clip(0, 1)
+
+    masked_img = image * garment_mask[...,None] + bg_color * (1 - garment_mask[...,None])
     masked_img = (masked_img * 255).astype(np.uint8)
     
     out_dict = {}
     out_dict['image'] = image
-    out_dict['mask'] = mask[..., None]
+    out_dict['mask'] = garment_mask[..., None]
     out_dict['masked_img'] = masked_img
+    out_dict['penalized_mask'] = penalized_mask
     return out_dict

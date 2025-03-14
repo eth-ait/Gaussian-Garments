@@ -12,6 +12,7 @@
 import os
 import glob
 from pathlib import Path
+import pickle
 import torch
 from torch import nn
 import numpy as np
@@ -286,4 +287,79 @@ class AvatarGaussianModel(MeshGaussianModel):
         self._rotation.requires_grad = value
         self._opacity.requires_grad = value
 
+
+
+class AvatarSimulationModel(AvatarGaussianModel):
+    def __init__(self, tmp_path: str, sh_degree=3, texture_size=512):
+        super(MeshGaussianModel, self).__init__(sh_degree)
+        self.texture_size = texture_size
+
+        tmp_path = Path(tmp_path)
+
+        # locate template
+        _tmp = tmp_path / DEFAULTS.stage1 / 'template_uv.obj'
+        tem_dict = read_obj(_tmp)
+        # init mesh
+        self.mesh = MeshModel(tem_dict['vertices'], tem_dict['faces'])
+
+        # Compute pixel-wise bound face indices
+        bind_map, _ = self.get_texture_binding(tem_dict['uvs'], tem_dict['texture_faces'], res=texture_size)
+
+        # init uv bindings
+        self.gaussian_mask = bind_map > -1 # uv map with the binded face ids for each pixel
+        self.binding = torch.tensor(bind_map[self.gaussian_mask], dtype=int).cuda()
+        # others
+        self.num_gs = len(self.binding)
+        self.gs_u, self.gs_v = np.where(self.gaussian_mask)
+        # compute barycentric coor from uv
+        uv_triangles = tem_dict['uvs'][tem_dict['texture_faces']][self.binding.cpu()]*texture_size
+        uv_gs = np.array([self.gs_v, self.gs_u]).T + 0.5
+        bc = barycentric_2D(torch.tensor(uv_triangles), torch.tensor(uv_gs))
+        self.gs_bc = [i.to(torch.float32).cuda() for i in bc]
+
+        # gaussians
+        self.init_empty_gaussians()
+
+    def init_empty_gaussians(self,):
+        # Initialize Gaussian parameters
+        self.active_sh_degree = self.max_sh_degree
+        self.max_radii2D = torch.zeros((self.num_gs), device="cuda")
+
+        self._xyz = nn.Parameter(torch.tensor(np.zeros([self.num_gs, 3]), dtype=torch.float, device="cuda"))
+        # self._xyz = None
+        ## local = o3d.geometry.PointCloud()
+        ## local.points =  o3d.utility.Vector3dVector(self.get_xyz.detach().cpu().numpy())
+        ## o3d.visualization.draw_geometries([local])
+        self.shs = torch.tensor(np.zeros([self.num_gs, 3, (self.max_sh_degree+1)**2]), dtype=torch.float, device="cuda").transpose(1, 2) # (N, 3, 16)
+        self._features_dc = nn.Parameter(torch.tensor(np.zeros([self.num_gs, 3, 1]), dtype=torch.float, device="cuda").transpose(1, 2).contiguous())
+        self._features_rest = nn.Parameter(torch.tensor(np.zeros([self.num_gs, 3, (self.max_sh_degree+1)**2-1]), dtype=torch.float, device="cuda").transpose(1, 2).contiguous())
+        self._scaling = nn.Parameter(torch.tensor(np.zeros([self.num_gs, 3]), dtype=torch.float, device="cuda"))
+        self._rotation = nn.Parameter(torch.tensor(np.zeros([self.num_gs, 4]), dtype=torch.float, device="cuda"))
+        self._opacity = nn.Parameter(torch.tensor(np.zeros([self.num_gs, 1]), dtype=torch.float, device="cuda"))
+
+    def get_gaussian_map(self,):
+        map = {}
+        # init zero map
+        map['features_dc'] = torch.zeros([self.texture_size, self.texture_size, *self._features_dc.shape[1:]])
+        map['features_rest'] = torch.zeros([self.texture_size, self.texture_size, *self._features_rest.shape[1:]])
+        map['scaling'] = torch.zeros([self.texture_size, self.texture_size, *self._scaling.shape[1:]])
+        map['rotation'] = torch.zeros([self.texture_size, self.texture_size, *self._rotation.shape[1:]])
+        map['opacity'] = torch.zeros([self.texture_size, self.texture_size, *self._opacity.shape[1:]])
+        # fill in gaussian values
+        map['features_dc'][self.gaussian_mask] = self._features_dc.detach().cpu()
+        map['features_rest'][self.gaussian_mask] = self._features_rest.detach().cpu()
+        map['scaling'][self.gaussian_mask] = self._scaling.detach().cpu()
+        map['rotation'][self.gaussian_mask] = self._rotation.detach().cpu()
+        map['opacity'][self.gaussian_mask] = self._opacity.detach().cpu()
+        return map
+    
+    def load_texture(self, path):
+        map = pickle.load(open(path, "rb"))
+        mask = map['mask']
+        self._features_dc = map['features_dc'][mask].cuda()
+        self._features_rest = map['features_rest'][mask].cuda()
+        self._scaling = map['scaling'][mask].cuda()
+        self._rotation = map['rotation'][mask].cuda()
+        self._opacity = map['opacity'][mask].cuda()
+        self._xyz = map['xyz'][mask].cuda()
 

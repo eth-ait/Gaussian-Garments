@@ -156,8 +156,8 @@ class MeshModel():
         energy = f_area * self.thickness * energy_density
         return energy.sum()
 
-    def panelize_virtual(self,):
-        # only panelize compressed virtual edge
+    def penalize_virtual(self,):
+        # only penalize compressed virtual edge
         return F.relu(self.ve_len - get_ve_len(self.virtual_edge, self.v, self.f)).mean()
 
     def init_body(self, o3d_body):
@@ -200,6 +200,6 @@ class MeshModel():
         if use_body:
             loss['collision'] = self.collision() *  args.lambda_collision
         else:
-            loss['virtual_edge'] = self.panelize_virtual() * args.lambda_virtual
+            loss['virtual_edge'] = self.penalize_virtual() * args.lambda_virtual
         # if inertial: loss['inertial'] = self.inertial() *  args.lambda_inertial
         return loss

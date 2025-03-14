@@ -156,3 +156,4 @@ def compute_vertex_normals(verts, faces):
     if torch.is_anomaly_enabled():
         assert torch.all(torch.isfinite(v_normals))
     return v_normals
+

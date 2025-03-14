@@ -9,12 +9,14 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
+from scene.cameras import Camera
 import torch
 import sys
 from datetime import datetime
 import numpy as np
 import random
 import open3d as o3d
+from utils.graphics_utils import focal2fov
 
 def inverse_sigmoid(x):
     return torch.log(x/(1-x))

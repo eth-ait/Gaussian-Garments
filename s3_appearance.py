@@ -36,7 +36,7 @@ def rm_dimension(data: dict):
             data[k] = v[0]
 
 def logger(loss, bar, iteration):
-    # TODO: what's acc and wry catch exception?
+    # TODO: what's acc and why catch exception?
     global acc
     try:
         acc = {f'AVG_{k}': (acc[f'AVG_{k}']*(iteration-1)+v) / iteration for k, v in loss.items()}
@@ -55,7 +55,6 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--subject', type=str, required=True, default='')
     parser.add_argument('-so', '--subject_out', type=str, default='')
     
-    # parser.add_argument('-g', '--garment_type', type=str, required=True) # garment label
     parser.add_argument('--ckpt_path', type=str, default='') 
     # mesh gaussian config
     parser.add_argument('--sh_degree', type=int, default=3)
@@ -77,11 +76,6 @@ if __name__ == "__main__":
     if len(args.subject_out) == 0:
         args.subject_out = args.subject
     args.subject_out = Path(DEFAULTS.output_root) / args.subject_out
-
-    # store_path = DEFAULTS.registration_root
-    # args.model_path = os.path.join(DEFAULTS.output_root, args.model_path)
-    # args.ckpt_path = os.path.join(DEFAULTS.output_root, args.ckpt_path)
-
     stage3_path = DEFAULTS.output_root / args.subject_out / DEFAULTS.stage3
 
 
@@ -195,9 +189,9 @@ if __name__ == "__main__":
                     test_gt_img = _test_cam.original_image.detach().cpu()
                     test_img = render(_test_cam, gaussians, args, bg)["render"].detach().cpu()
                     diff = torch.abs(test_img - test_gt_img).cpu()
-                    panelize = _test_cam.gt_alpha_mask
-                    panelize = torch.cat([panelize,panelize,panelize]).detach().cpu()
-                    container = torch.cat([panelize, texture, test_gt_img, test_img, diff], axis=-1)
+                    penalize = _test_cam.gt_alpha_mask
+                    penalize = torch.cat([penalize,penalize,penalize]).detach().cpu()
+                    container = torch.cat([penalize, texture, test_gt_img, test_img, diff], axis=-1)
                     container = container.permute(1,2,0)*255
 
                     _render = stage3_path / "debug_renders" 

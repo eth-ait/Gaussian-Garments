@@ -62,7 +62,7 @@ class AvatarDataloader(Dataset):
             info['json_path'] = os.path.join(seq_path, 'cameras.json')
             # frame info
 
-            images_dir = cam_folders[0] / "capture_images"
+            images_dir = cam_folders[0] / DEFAULTS.rgb_images
             _imgs = sorted(glob.glob(os.path.join(images_dir, "*.png")))
             _imgs = [Path(img) for img in _imgs]
 
@@ -90,19 +90,18 @@ class AvatarDataloader(Dataset):
 
         # load GT image & mask
         _folder = os.path.join(os.path.dirname(info['json_path']),cam)
-        _img = os.path.join(_folder, "capture_images", f"{data['current_frame']:05d}.png")
-        _lab = os.path.join(_folder, "capture_labels",f"{data['current_frame']:05d}.png")
-        image_dict = load_masked_image(_img, _lab, data['bg'])
+        _img = os.path.join(_folder, DEFAULTS.rgb_images, f"{data['current_frame']:05d}.png")
+        _gmask = os.path.join(_folder, DEFAULTS.garment_masks,f"{data['current_frame']:05d}.png")
+        _fgmask = os.path.join(_folder, DEFAULTS.foregroung_masks,f"{data['current_frame']:05d}.png")
+        image_dict = load_masked_image(_img, _gmask, _fgmask, data['bg'])
         masked_img = image_dict['masked_img'] 
-        mask = image_dict['mask']
-
-        panelize = mask
         masked_img = torch.tensor(masked_img, dtype=torch.float32) / 255.
-        panelize = torch.tensor(panelize)
+        penalized_mask = image_dict['penalized_mask']
+        penalized_mask = torch.tensor(penalized_mask)
 
         # load cam
         cam_params = json.load(open(info['json_path'], 'r'))[cam]
-        data['camera'] = self.get_cam_info(cam_params, masked_img, panelize)
+        data['camera'] = self.get_cam_info(cam_params, masked_img, penalized_mask)
 
         # load current frame mesh and bake textures
         _mesh = self.output_dir / DEFAULTS.stage2 /  data['current_seq'] / "meshes" / f"frame_{data['current_frame']}.obj"
@@ -124,46 +123,23 @@ class AvatarDataloader(Dataset):
         cx, cy = intrinsic[:2, 2]
         FovY, FovX = focal2fov(fy, h), focal2fov(fx, w)
 
-        # return Camera(R=R, T=T, FoVx=FovX, FoVy=FovY, fx=fx, fy=fy, cx=cx, cy=cy,
-        #               image=image.permute(2,0,1), gt_alpha_mask=mask.permute(2,0,1), data_device='cpu')
         return  {"R":R, "T":T, "FoVx":FovX, "FoVy":FovY, "fx":fx, "fy":fy, "cx":cx, "cy":cy, 'colmap_id':np.nan, 'image_name':np.nan, 'uid':params['ids'],
                 "image":image.permute(2,0,1), "gt_alpha_mask":mask.permute(2,0,1), "data_device":'cpu'} 
     
     def get_maps(self, _mesh: str, _body: str = None):
         # load current mesh
         mesh = read_obj(_mesh)
-        # try:
-        #     mesh = read_obj(_mesh)
-        #     assert len(mesh['vertices']) == len(self.template['vertices']), f"Num of Vertices mismatch, {_mesh}"
-        #     assert not False in (mesh['faces'] == self.template['faces']), f"Num of Face mismatch, {_mesh}"
-        #     mesh['vertices'][mesh['faces']]
-        #     return np.nan, np.nan, torch.tensor(mesh['vertices'], dtype=torch.float32)
-        # except:
-        #     print(_mesh)
-        #     return np.nan, np.nan, torch.tensor(mesh['vertices'], dtype=torch.float32)
 
         # locate texture path
         _ambient = _mesh.parents[1] / "texture" / "ambient" / f"{_mesh.stem}.png"
         _normal = _mesh.parents[1] / "texture" / "normal" / f"{_mesh.stem}.png"
 
-
-        # _ambient = _mesh.replace("meshes/","texture/ambient/").replace(".obj",".png")
-        # _normal = _mesh.replace("meshes/","texture/normal/").replace(".obj",".png")
         if os.path.exists(_ambient) and os.path.exists(_normal): 
             ambient = np.array(Image.open(_ambient)) / 255.
             normal = np.array(Image.open(_normal)) / 255.
         else:
             ambient, normal = self.bake_texture(_mesh, body_path=_body, w=self.texture_size, h=self.texture_size, save=True)
-            # TODO: why try???
-            # try:
-            #     ambient, normal = self.bake_texture(_mesh, body_path=_body, w=self.texture_size, h=self.texture_size, save=True)
-            # except:
-            #     # copy uv info from template
-            #     output = copy.deepcopy(self.template)
-            #     assert len(output['vertices']) == len(mesh['vertices']), f"Num of Vertices mismatch, {_mesh}"
-            #     output['vertices'] = mesh['vertices']
-            #     write_obj(output, _mesh)
-            #     ambient, normal = self.bake_texture(_mesh, body_path=_body, w=self.texture_size, h=self.texture_size, save=True)
+
         ambient = torch.tensor(ambient, dtype=torch.float32).unsqueeze(0)
         normal = torch.tensor(normal, dtype=torch.float32).permute(2,0,1)
         mesh_v = torch.tensor(mesh['vertices'], dtype=torch.float32)
@@ -182,8 +158,6 @@ class AvatarDataloader(Dataset):
 
         # load mesh
         if os.path.exists(body_path):
-            # TODO: are there faulty body meshes?
-            # bpy.ops.wm.ply_import(filepath=str(body_path))
             try:
                 bpy.ops.wm.ply_import(filepath=str(body_path))
             except:

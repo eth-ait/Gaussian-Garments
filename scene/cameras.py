@@ -12,7 +12,7 @@
 import torch
 from torch import nn
 import numpy as np
-from utils.graphics_utils import getWorld2View2, getProjectionMatrix
+from utils.graphics_utils import focal2fov, getWorld2View2, getProjectionMatrix
 
 class Camera(nn.Module):
     def __init__(self, colmap_id, R, T, FoVx, FoVy, fx, fy, cx, cy, image, gt_alpha_mask,
@@ -73,4 +73,18 @@ class MiniCam:
         self.full_proj_transform = full_proj_transform
         view_inv = torch.inverse(self.world_view_transform)
         self.camera_center = view_inv[3][:3]
+
+
+def get_cam_info(params, h=1280, w=940):
+    # get camera intrinsic and extrinsic matrices
+    intrinsic = np.asarray(params["intrinsics"])
+    extrinsic = np.asarray(params["extrinsics"])
+
+    R, T = np.transpose(extrinsic[:, :3]), extrinsic[:, 3]
+    fx, fy = intrinsic[0, 0], intrinsic[1, 1]
+    cx, cy = intrinsic[:2, 2]
+    FovY, FovX = focal2fov(fy, h), focal2fov(fx, w)
+
+    return Camera(R=R, T=T, FoVx=FovX, FoVy=FovY, fx=fx, fy=fy, cx=cx, cy=cy, colmap_id=None, image_name=None, uid=None,
+                    image=torch.zeros([3,h,w]), gt_alpha_mask=torch.zeros([1,h,w]), data_device='cuda')
 

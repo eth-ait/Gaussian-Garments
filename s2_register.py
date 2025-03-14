@@ -71,6 +71,8 @@ def ait_render(viewer, v, f, cam, vb=None, fb=None):
 
     return torch.tensor(image)
 
+
+# TODO: rewrite this function
 def logger(loss, iteration, max_iter):
     # TODO: what's acc and why catch exception?
     global acc
@@ -103,11 +105,11 @@ def saver(viewer, gaussians, scene, args, bg):
     render_cam = scene.getTrainCameras()[0]
     gt_img = render_cam.original_image.detach().cpu()
     img = render(render_cam, gaussians, args, bg)["render"].detach().cpu()
-    panelize = render_cam.gt_alpha_mask
-    panelize = torch.cat([panelize,panelize,panelize]).detach().cpu()
+    penalize = render_cam.gt_alpha_mask
+    penalize = torch.cat([penalize,penalize,penalize]).detach().cpu()
     diff = torch.abs(img - gt_img)
     _ait = ait_render(viewer, gaussians.mesh.v, gaussians.mesh.f, render_cam, gaussians.mesh.body.vertices, gaussians.mesh.body.faces) / 255
-    col1 = torch.cat([gt_img, panelize], axis=1)
+    col1 = torch.cat([gt_img, penalize], axis=1)
     col2 = torch.cat([img, diff], axis=1)
     container = torch.cat([col1, col2, _ait], axis=-1)
 
