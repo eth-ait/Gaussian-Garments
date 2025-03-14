@@ -58,7 +58,7 @@ class crossScene(Scene):
         @param is_ff: bool, is first frame
         """
 
-        self.current_frame = self.dataloader.start_frame + t
+        self.current_frame = t
 
         # if not start optimizing from first frame
         if not is_ff and self.gaussians.prev_xyz is None:
@@ -143,9 +143,8 @@ class crossScene(Scene):
             #     self.gaussians.lbs_frame(t)
 
 
-            _ply_idx = self.dataloader.start_frame
-            print("Loading Gaussian at frame {}".format(_ply_idx))
-            ply_path = stage2_path / "point_cloud" / ("frame_" + str(_ply_idx)) / "local_point_cloud.ply"
+            print("Loading Gaussian at frame_00000")
+            ply_path = stage2_path / "point_cloud" / "frame_00000" / "local_point_cloud.ply"
             self.gaussians.load_ply(ply_path)
 
         self.gaussians.spatial_lr_scale = self.cameras_extent

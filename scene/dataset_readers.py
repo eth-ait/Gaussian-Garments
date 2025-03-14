@@ -80,7 +80,6 @@ class Dataloader():
     
 
     def load_frame(self, idx):
-        # frame_idx = self.start_frame + idx # frame filename
         camera_info_list = []
 
         # process all cameras

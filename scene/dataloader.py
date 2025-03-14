@@ -62,16 +62,6 @@ class AvatarDataloader(Dataset):
                 info['cam_names'] = [n.name for n in cam_folders]
             info['json_path'] = seq_path / 'cameras.json'
             # frame info
-
-            # images_dir = cam_folders[0] / DEFAULTS.rgb_images
-            # _imgs = sorted(images_dir.glob("*.png"))
-            # _imgs = [Path(img) for img in _imgs]
-
-            # info['start_frame'] = int(_imgs[0].stem)
-
-            # self._img_files = sorted((self.cam_paths[0]/DEFAULTS.rgb_images).glob("*.png"))
-            # self._gm_files = sorted((self.cam_paths[0]/DEFAULTS.garment_masks).glob("*.png"))
-            # self._fg_files = sorted((self.cam_paths[0]/DEFAULTS.foreground_masks).glob("*.png"))
             img_files = sorted((cam_folders[0] / DEFAULTS.rgb_images).glob("*.png"))
             gm_files = sorted((cam_folders[0] / DEFAULTS.garment_masks).glob("*.png"))
             fg_files = sorted((cam_folders[0] / DEFAULTS.foreground_masks).glob("*.png"))
@@ -99,7 +89,6 @@ class AvatarDataloader(Dataset):
         data = {}
 
         data['current_seq'] = name
-        # data['current_frame'] = info['start_frame'] + frame
         data['current_frame'] = frame
         data['bg'] = np.random.rand(3) if self.random_bg else self.bg
 
