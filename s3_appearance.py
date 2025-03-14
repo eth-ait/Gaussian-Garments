@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import torch
 import socket
+import bpy
 import numpy as np
 from PIL import Image
 import random

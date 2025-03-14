@@ -60,15 +60,28 @@ class AvatarDataloader(Dataset):
                 info['cam_names'] = [n.name for idx, n in enumerate(cam_folders) if idx % args.llffhold != 0]
             else:
                 info['cam_names'] = [n.name for n in cam_folders]
-            info['json_path'] = os.path.join(seq_path, 'cameras.json')
+            info['json_path'] = seq_path / 'cameras.json'
             # frame info
 
-            images_dir = cam_folders[0] / DEFAULTS.rgb_images
-            _imgs = sorted(glob.glob(os.path.join(images_dir, "*.png")))
-            _imgs = [Path(img) for img in _imgs]
+            # images_dir = cam_folders[0] / DEFAULTS.rgb_images
+            # _imgs = sorted(images_dir.glob("*.png"))
+            # _imgs = [Path(img) for img in _imgs]
 
-            info['start_frame'] = int(_imgs[0].stem)
-            info['frame_num'] = len(_imgs)
+            # info['start_frame'] = int(_imgs[0].stem)
+
+            # self._img_files = sorted((self.cam_paths[0]/DEFAULTS.rgb_images).glob("*.png"))
+            # self._gm_files = sorted((self.cam_paths[0]/DEFAULTS.garment_masks).glob("*.png"))
+            # self._fg_files = sorted((self.cam_paths[0]/DEFAULTS.foreground_masks).glob("*.png"))
+            img_files = sorted((cam_folders[0] / DEFAULTS.rgb_images).glob("*.png"))
+            gm_files = sorted((cam_folders[0] / DEFAULTS.garment_masks).glob("*.png"))
+            fg_files = sorted((cam_folders[0] / DEFAULTS.foreground_masks).glob("*.png"))
+
+            info['img_names'] = [img.name for img in img_files]
+            info['gm_names'] = [gm.name for gm in gm_files]
+            info['fg_names'] = [fg.name for fg in fg_files]
+
+
+            info['frame_num'] = len(info['img_names'])
             # collect info
             self.dataset_info[seq_name] = info
             self.frame_collection += [(seq_name, f, c) for f in range(info['frame_num']) for c in info['cam_names']]
@@ -86,14 +99,29 @@ class AvatarDataloader(Dataset):
         data = {}
 
         data['current_seq'] = name
-        data['current_frame'] = info['start_frame'] + frame
+        # data['current_frame'] = info['start_frame'] + frame
+        data['current_frame'] = frame
         data['bg'] = np.random.rand(3) if self.random_bg else self.bg
 
+        img_name = info['img_names'][frame]
+        gmask_name = info['gm_names'][frame]
+        fgmask_name = info['fg_names'][frame]
+
         # load GT image & mask
-        _folder = os.path.join(os.path.dirname(info['json_path']),cam)
-        _img = os.path.join(_folder, DEFAULTS.rgb_images, f"{data['current_frame']:05d}.png")
-        _gmask = os.path.join(_folder, DEFAULTS.garment_masks,f"{data['current_frame']:05d}.png")
-        _fgmask = os.path.join(_folder, DEFAULTS.foreground_masks,f"{data['current_frame']:05d}.png")
+        # _folder = os.path.join(os.path.dirname(info['json_path']),cam)
+        _folder = info['json_path'].parent / cam
+        # print("info['json_path']", type(info['json_path']))
+        
+
+        # _img = os.path.join(_folder, DEFAULTS.rgb_images, f"{data['current_frame']:05d}.png")
+        # _gmask = os.path.join(_folder, DEFAULTS.garment_masks,f"{data['current_frame']:05d}.png")
+        # _fgmask = os.path.join(_folder, DEFAULTS.foreground_masks,f"{data['current_frame']:05d}.png")
+
+        _img = _folder / DEFAULTS.rgb_images / img_name
+        _gmask = _folder / DEFAULTS.garment_masks / gmask_name
+        _fgmask = _folder / DEFAULTS.foreground_masks / fgmask_name
+
+
         image_dict = load_masked_image(_img, _gmask, _fgmask, data['bg'])
         masked_img = image_dict['masked_img'] 
         masked_img = torch.tensor(masked_img, dtype=torch.float32) / 255.
@@ -105,7 +133,7 @@ class AvatarDataloader(Dataset):
         data['camera'] = self.get_cam_info(cam_params, masked_img, penalized_mask)
 
         # load current frame mesh and bake textures
-        _mesh = self.output_dir / DEFAULTS.stage2 /  data['current_seq'] / "meshes" / f"frame_{data['current_frame']}.obj"
+        _mesh = self.output_dir / DEFAULTS.stage2 /  data['current_seq'] / "meshes" / f"frame_{data['current_frame']:05d}.obj"
         _body = self.data_dir / data['current_seq'] / "smplx" / f"{data['current_frame']:05d}.ply"
 
         data['ambient'], data['normal'], data['mesh_v'] = self.get_maps(_mesh, _body)
@@ -125,7 +153,7 @@ class AvatarDataloader(Dataset):
         FovY, FovX = focal2fov(fy, h), focal2fov(fx, w)
 
         return  {"R":R, "T":T, "FoVx":FovX, "FoVy":FovY, "fx":fx, "fy":fy, "cx":cx, "cy":cy, 'colmap_id':np.nan, 'image_name':np.nan, 'uid':params['ids'],
-                "image":image.permute(2,0,1), "gt_alpha_mask":mask.permute(2,0,1), "data_device":'cpu'} 
+                "image":image.permute(2,0,1), "gt_alpha_mask":mask.unsqueeze(0), "data_device":'cpu'} 
     
     def get_maps(self, _mesh: str, _body: str = None):
         # load current mesh
