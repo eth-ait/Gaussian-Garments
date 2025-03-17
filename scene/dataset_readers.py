@@ -28,6 +28,7 @@ from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
 from sklearn import neighbors
 from arguments import ModelParams
+from tqdm import tqdm
 
 class CameraInfo():
     def __init__(self, uid, R, T, FovY, FovX, fx, fy, cx, cy,
@@ -63,30 +64,34 @@ class Dataloader():
         self.cam_num = len(self.cam_paths)
         # frame info
 
-        # print(self.cam_paths[0]/DEFAULTS.rgb_images)
+        self._img_names = {}
+        self._gm_names = {}
+        self._fg_names = {}
 
-        img_files = sorted((self.cam_paths[0]/DEFAULTS.rgb_images).glob("*.png"))
-        if len(img_files) == 0:
-            img_files = sorted((self.cam_paths[0]/DEFAULTS.rgb_images).glob("*.jpg"))
+        print('Reading frame info...')
+        # Need to collect filenames for each camera separately in case they are not the same as in ActorsHQ
+        for cam_path in tqdm(self.cam_paths):
+            cam_name = cam_path.name
+            # print('cam_name', cam_name)
 
-        gm_files = sorted((self.cam_paths[0]/DEFAULTS.garment_masks).glob("*.png"))
-        if len(gm_files) == 0:
-            gm_files = sorted((self.cam_paths[0]/DEFAULTS.garment_masks).glob("*.jpg"))
+            img_files = sorted((cam_path/DEFAULTS.rgb_images).glob("*.png"))
+            if len(img_files) == 0:
+                img_files = sorted((cam_path/DEFAULTS.rgb_images).glob("*.jpg"))
 
-        fg_files = sorted((self.cam_paths[0]/DEFAULTS.foreground_masks).glob("*.png"))
+            gm_files = sorted((cam_path/DEFAULTS.garment_masks).glob("*.png"))
+            if len(gm_files) == 0:
+                gm_files = sorted((cam_path/DEFAULTS.garment_masks).glob("*.jpg"))
 
-        # self.img_ext = img_files[0].suffix
-        # self.gm_ext = gm_files[0].suffix
-        # self.fg_ext = fg_files[0].suffix
+            fg_files = sorted((cam_path/DEFAULTS.foreground_masks).glob("*.png"))
 
-        # if args.template_frame is not None:
-        #     img_files = [img_files[args.template_frame]]
-        #     gm_files = [gm_files[args.template_frame]]
-        #     fg_files = [fg_files[args.template_frame]]
+            self._img_names[cam_name] = [img.name for img in img_files]
+            self._gm_names[cam_name] = [gm.name for gm in gm_files]
+            self._fg_names[cam_name] = [fg.name for fg in fg_files]
+        print('Reading frame info done')
 
-        self._img_names = [img.name for img in img_files]
-        self._gm_names = [gm.name for gm in gm_files]
-        self._fg_names = [fg.name for fg in fg_files]
+        # self._img_names = [img.name for img in img_files]
+        # self._gm_names = [gm.name for gm in gm_files]
+        # self._fg_names = [fg.name for fg in fg_files]
         self._len = len(self._img_names)
         # smplx info
         self.smplx_list = sorted(glob.glob(os.path.join(seq_path, "smplx/*.ply")))
@@ -102,17 +107,15 @@ class Dataloader():
         for c_idx, _cam in enumerate(self.cam_paths):
             print(f"Reading frame #{c_idx} camera {c_idx+1}/{self.cam_num} ")
 
-            _img_name = self._img_names[frame]
-            _gmask_name = self._gm_names[frame]
-            _fgmask_name = self._fg_names[frame]
+            camera_name = _cam.name
+
+            _img_name = self._img_names[camera_name][frame]
+            _gmask_name = self._gm_names[camera_name][frame]
+            _fgmask_name = self._fg_names[camera_name][frame]
 
             _img = _cam / DEFAULTS.rgb_images / _img_name
             _gmask = _cam / DEFAULTS.garment_masks / _gmask_name
             _fgmask = _cam / DEFAULTS.foreground_masks / _fgmask_name
-
-            # _img = _img.with_suffix(self.img_ext)
-            # _gmask = _gmask.with_suffix(self.gm_ext)
-            # _fgmask = _fgmask.with_suffix(self.fg_ext)
 
             bg = np.array([1,1,1]) if self.white_background else np.array([0, 0, 0])
             image_dict = load_masked_image(_img, _gmask, _fgmask, bg)
