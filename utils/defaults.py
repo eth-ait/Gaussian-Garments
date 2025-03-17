@@ -10,9 +10,9 @@ if 'borong-System-Product-Name' in hostname:
     DEFAULTS['user'] = os.getlogin()
     DEFAULTS['user_id'] = os.getuid()
 
-    DEFAULTS['output_root'] = './data/outputs/'
-    DEFAULTS['data_root'] = f'/run/user/' + str(DEFAULTS['user_id']) + '/gvfs/smb-share:server=mocap-stor-02.inf.ethz.ch,share=ssd/data1/HOODs/Datasets/'
-    # DEFAULTS['data_root'] = f'/run/user/' + str(DEFAULTS['user_id']) + '/gvfs/smb-share:server=hilliges.scratch.inf.ethz.ch,share=scratch-hilliges/HOODs/Datasets/'
+    DEFAULTS['output_root'] = '/home/hramzan/Desktop/semester-project/Gaussian-Garments/data/outputs'
+    DEFAULTS['data_root'] = '/home/hramzan/Desktop/semester-project/Gaussian-Garments/data/input'
+    DEFAULTS['aux_root'] = '/home/hramzan/Desktop/semester-project/Gaussian-Garments/data/input'
     
     DEFAULTS['server'] = 'local'
     DEFAULTS['hostname'] = hostname

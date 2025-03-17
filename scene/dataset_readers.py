@@ -63,9 +63,21 @@ class Dataloader():
         self.cam_num = len(self.cam_paths)
         # frame info
 
+        # print(self.cam_paths[0]/DEFAULTS.rgb_images)
+
         img_files = sorted((self.cam_paths[0]/DEFAULTS.rgb_images).glob("*.png"))
+        if len(img_files) == 0:
+            img_files = sorted((self.cam_paths[0]/DEFAULTS.rgb_images).glob("*.jpg"))
+
         gm_files = sorted((self.cam_paths[0]/DEFAULTS.garment_masks).glob("*.png"))
+        if len(gm_files) == 0:
+            gm_files = sorted((self.cam_paths[0]/DEFAULTS.garment_masks).glob("*.jpg"))
+
         fg_files = sorted((self.cam_paths[0]/DEFAULTS.foreground_masks).glob("*.png"))
+
+        # self.img_ext = img_files[0].suffix
+        # self.gm_ext = gm_files[0].suffix
+        # self.fg_ext = fg_files[0].suffix
 
         # if args.template_frame is not None:
         #     img_files = [img_files[args.template_frame]]
@@ -97,6 +109,10 @@ class Dataloader():
             _img = _cam / DEFAULTS.rgb_images / _img_name
             _gmask = _cam / DEFAULTS.garment_masks / _gmask_name
             _fgmask = _cam / DEFAULTS.foreground_masks / _fgmask_name
+
+            # _img = _img.with_suffix(self.img_ext)
+            # _gmask = _gmask.with_suffix(self.gm_ext)
+            # _fgmask = _fgmask.with_suffix(self.fg_ext)
 
             bg = np.array([1,1,1]) if self.white_background else np.array([0, 0, 0])
             image_dict = load_masked_image(_img, _gmask, _fgmask, bg)

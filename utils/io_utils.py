@@ -92,6 +92,10 @@ def load_masked_image(image_path, garment_mask_path, fg_mask_path, bg_color=None
         bg_color = np.array([0, 1, 0])
     image = np.array(Image.open(image_path)) / 255
     garment_mask = np.array(Image.open(garment_mask_path)) / 255
+
+    if str(garment_mask_path).endswith('jpg'):
+        garment_mask = garment_mask[...,0]
+
     fg_mask = np.array(Image.open(fg_mask_path)) / 255
     bg_mask = 1 - fg_mask
     penalized_mask = (garment_mask + bg_mask).clip(0, 1)
