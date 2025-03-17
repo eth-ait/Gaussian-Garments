@@ -70,9 +70,15 @@ class Dataloader():
 
         print('Reading frame info...')
         # Need to collect filenames for each camera separately in case they are not the same as in ActorsHQ
-        for cam_path in tqdm(self.cam_paths):
+        cam_to_copy_from = None
+        for i, cam_path in tqdm(enumerate(self.cam_paths)):
             cam_name = cam_path.name
-            # print('cam_name', cam_name)
+
+            if cam_to_copy_from is not None:
+                img_files = self._img_names[cam_to_copy_from]
+                gm_files = self._gm_names[cam_to_copy_from]
+                fg_files = self._fg_names[cam_to_copy_from]
+                continue
 
             img_files = sorted((cam_path/DEFAULTS.rgb_images).glob("*.png"))
             if len(img_files) == 0:
@@ -87,6 +93,12 @@ class Dataloader():
             self._img_names[cam_name] = [img.name for img in img_files]
             self._gm_names[cam_name] = [gm.name for gm in gm_files]
             self._fg_names[cam_name] = [fg.name for fg in fg_files]
+
+            if i == 1:
+                first_cam = self.cam_paths[0].name
+                if self._img_names[cam_name][0] == self._img_names[first_cam][0]:
+                    cam_to_copy_from = first_cam
+
         print('Reading frame info done')
 
         # self._img_names = [img.name for img in img_files]

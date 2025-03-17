@@ -12,6 +12,7 @@ from pathlib import Path
 from scipy.spatial.transform import Rotation as R
 from torch.utils.data import Dataset
 from utils.io_utils import load_masked_image, read_obj
+from tqdm import tqdm
 
 class AvatarDataloader(Dataset):
     def __init__(self, args):
@@ -61,14 +62,56 @@ class AvatarDataloader(Dataset):
             else:
                 info['cam_names'] = [n.name for n in cam_folders]
             info['json_path'] = seq_path / 'cameras.json'
-            # frame info
-            img_files = sorted((cam_folders[0] / DEFAULTS.rgb_images).glob("*.png"))
-            gm_files = sorted((cam_folders[0] / DEFAULTS.garment_masks).glob("*.png"))
-            fg_files = sorted((cam_folders[0] / DEFAULTS.foreground_masks).glob("*.png"))
 
-            info['img_names'] = [img.name for img in img_files]
-            info['gm_names'] = [gm.name for gm in gm_files]
-            info['fg_names'] = [fg.name for fg in fg_files]
+
+            img_names = {}
+            gm_names = {}
+            fg_names = {}
+
+            print(f'Reading frame info for {seq_name}...')
+            # Need to collect filenames for each camera separately in case they are not the same as in ActorsHQ
+            cam_to_copy_from = None
+            for i, cam_path in tqdm(enumerate(self.cam_paths)):
+                cam_name = cam_path.name
+
+                if cam_to_copy_from is not None:
+                    img_files = img_names[cam_to_copy_from]
+                    gm_files = gm_names[cam_to_copy_from]
+                    fg_files = fg_names[cam_to_copy_from]
+                    continue
+
+                img_files = sorted((cam_path/DEFAULTS.rgb_images).glob("*.png"))
+                if len(img_files) == 0:
+                    img_files = sorted((cam_path/DEFAULTS.rgb_images).glob("*.jpg"))
+
+                gm_files = sorted((cam_path/DEFAULTS.garment_masks).glob("*.png"))
+                if len(gm_files) == 0:
+                    gm_files = sorted((cam_path/DEFAULTS.garment_masks).glob("*.jpg"))
+
+                fg_files = sorted((cam_path/DEFAULTS.foreground_masks).glob("*.png"))
+
+                img_names[cam_name] = [img.name for img in img_files]
+                gm_names[cam_name] = [gm.name for gm in gm_files]
+                fg_names[cam_name] = [fg.name for fg in fg_files]
+
+                if i == 1:
+                    first_cam = self.cam_paths[0].name
+                    if img_names[cam_name][0] == img_names[first_cam][0]:
+                        cam_to_copy_from = first_cam
+                
+
+            # frame info
+            # img_files = sorted((cam_folders[0] / DEFAULTS.rgb_images).glob("*.png"))
+            # gm_files = sorted((cam_folders[0] / DEFAULTS.garment_masks).glob("*.png"))
+            # fg_files = sorted((cam_folders[0] / DEFAULTS.foreground_masks).glob("*.png"))
+
+            # info['img_names'] = [img.name for img in img_files]
+            # info['gm_names'] = [gm.name for gm in gm_files]
+            # info['fg_names'] = [fg.name for fg in fg_files]
+
+            info['img_names'] = img_names
+            info['gm_names'] = gm_names
+            info['fg_names'] = fg_names
 
 
             info['frame_num'] = len(info['img_names'])
@@ -92,20 +135,12 @@ class AvatarDataloader(Dataset):
         data['current_frame'] = frame
         data['bg'] = np.random.rand(3) if self.random_bg else self.bg
 
-        img_name = info['img_names'][frame]
-        gmask_name = info['gm_names'][frame]
-        fgmask_name = info['fg_names'][frame]
+        img_name = info['img_names'][cam][frame]
+        gmask_name = info['gm_names'][cam][frame]
+        fgmask_name = info['fg_names'][cam][frame]
 
         # load GT image & mask
-        # _folder = os.path.join(os.path.dirname(info['json_path']),cam)
         _folder = info['json_path'].parent / cam
-        # print("info['json_path']", type(info['json_path']))
-        
-
-        # _img = os.path.join(_folder, DEFAULTS.rgb_images, f"{data['current_frame']:05d}.png")
-        # _gmask = os.path.join(_folder, DEFAULTS.garment_masks,f"{data['current_frame']:05d}.png")
-        # _fgmask = os.path.join(_folder, DEFAULTS.foreground_masks,f"{data['current_frame']:05d}.png")
-
         _img = _folder / DEFAULTS.rgb_images / img_name
         _gmask = _folder / DEFAULTS.garment_masks / gmask_name
         _fgmask = _folder / DEFAULTS.foreground_masks / fgmask_name
@@ -137,8 +172,8 @@ class AvatarDataloader(Dataset):
         h, w, _ = image.shape
 
         R, T = np.transpose(extrinsic[:, :3]), extrinsic[:, 3]
-        fx, fy = intrinsic[0, 0], intrinsic[1, 1]
-        cx, cy = intrinsic[:2, 2]
+        fx, fy = intrinsic[0, 0], intrinsic[1, 1] # focal length
+        cx, cy = intrinsic[:2, 2] # principal point
         FovY, FovX = focal2fov(fy, h), focal2fov(fx, w)
 
         return  {"R":R, "T":T, "FoVx":FovX, "FoVy":FovY, "fx":fx, "fy":fy, "cx":cx, "cy":cy, 'colmap_id':np.nan, 'image_name':np.nan, 'uid':params['ids'],
