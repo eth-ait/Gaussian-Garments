@@ -93,14 +93,19 @@ def saver(viewer, gaussians, scene, args, bg):
     current_frame = scene.current_frame
 
     if current_frame == 0:
-        scene.save(current_frame)
+        scene.save(current_frame, args.is_template)
 
-    stage2_path = Path(args.subject_out) / DEFAULTS.stage2 / args.sequence
-
-    # save mesh
-    mesh_path = stage2_path / "meshes"
-    os.makedirs(mesh_path, exist_ok=True)
-    gaussians.save_mesh(os.path.join(mesh_path, f"frame_{current_frame:05d}.obj"))
+    stage2_path = Path(args.subject_out) / DEFAULTS.stage2 
+    if args.is_template:
+        mesh_path = stage2_path / "Template" / "template.obj"
+        mesh_path.parent.mkdir(parents=True, exist_ok=True)
+        gaussians.save_mesh(mesh_path)
+    else:
+        sequence_path = Path(args.subject_out) / DEFAULTS.stage2 / args.sequence
+        # save mesh
+        mesh_path = sequence_path / "meshes"
+        os.makedirs(mesh_path, exist_ok=True)
+        gaussians.save_mesh(os.path.join(mesh_path, f"frame_{current_frame:05d}.obj"))
 
     # store rendered imgs
     render_cam = scene.getTrainCameras()[0]
@@ -115,8 +120,14 @@ def saver(viewer, gaussians, scene, args, bg):
     container = torch.cat([col1, col2, _ait], axis=-1)
 
     container = Image.fromarray(np.array(container*255.0, dtype=np.byte).transpose((1, 2, 0)), "RGB")
-    os.makedirs(stage2_path/  'renders', exist_ok=True)
-    container.save(stage2_path / f"renders/{current_frame:05d}.png")
+
+    if args.is_template:
+        render_path = stage2_path / "Template" / "template_render.png"
+    else:
+        render_path = sequence_path / "renders" / f"{current_frame:05d}.png"
+    render_path.parent.mkdir(parents=True, exist_ok=True)
+    container.save(render_path)
+        
 
 if __name__ == "__main__":
     # Set up command line argument parser
@@ -152,13 +163,15 @@ if __name__ == "__main__":
     if len(args.subject_out) == 0:
         args.subject_out = args.subject
     args.subject_out = Path(DEFAULTS.output_root) / args.subject_out
-    args.is_template_seq = (args.template_seq == "")
 
+
+    args.is_template = args.template_frame is not None
+    args.is_template_seq = args.is_template
+    
     if not args.is_template_seq:
         args.first_frame_iterations = args.first_frame_iterations_cross
         args.cross_from = Path(DEFAULTS.output_root) / args.subject_out / DEFAULTS.stage2 / args.template_seq
 
-    
     prepare_output_and_logger(args)
     dataset = lp.extract(args)
     opt = op.extract(args)
@@ -168,7 +181,8 @@ if __name__ == "__main__":
     dataloader = Dataloader(args)
     gaussians = MeshGaussianModel(args)
 
-    if args.is_template_seq:
+
+    if args.is_template:
         scene = Scene(args, dataloader, gaussians)
     else:
         scene = crossScene(args, dataloader, gaussians)
@@ -179,9 +193,9 @@ if __name__ == "__main__":
     stage2_path = Path(args.subject_out) / DEFAULTS.stage2 / args.sequence
 
     # reconstruct and optimize
-    frames_iterater = range(dataloader._len) if args.template_frame is None else [args.template_frame]
-    for t in frames_iterater:
-        is_first_frame = (t==0) or (args.template_frame is not None)
+    frames_iterator = range(dataloader._len) if not args.is_template else [args.template_frame]
+    for t in frames_iterator:
+        is_first_frame = (t==0) or args.is_template
         collision_iteration = args.ff_collision_iteration if is_first_frame else args.collision_iteration
         iterations = args.first_frame_iterations + collision_iteration if is_first_frame else args.other_frame_iterations
 
@@ -207,7 +221,7 @@ if __name__ == "__main__":
         desc = "{} frame{} --> {}/{}".format("Reconstruct" if is_first_frame else "Optimize", scene.current_frame, t+1, dataloader._len)
         progress_bar = tqdm(range(iterations), desc=desc)
 
-        iterations = 10
+        # iterations = 10
         for iter in range(1, iterations+1):
             use_body = iter > iterations - collision_iteration
             # first frame remove collision
@@ -245,7 +259,6 @@ if __name__ == "__main__":
 
 
 
-
             # Render
             render_pkg = render(viewpoint_cam, gaussians, pipe, bg)
             image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
@@ -265,24 +278,33 @@ if __name__ == "__main__":
             else:
                 loss_dict.update(gaussians.mesh.get_energy_loss(args, use_body))
 
-            # gt_image_np = gt_image.detach().cpu().numpy().transpose(1, 2, 0)
-            # image_np = image.detach().cpu().numpy().transpose(1, 2, 0)
-            # mask_np = mask.detach().cpu().numpy().transpose(1, 2, 0) 
-            # mask_np = np.concatenate([mask_np, mask_np, mask_np], axis=-1)
-            # # print('mask_np', mask_np.shape)
 
-            # temp_folder = Path('/local/home/agrigorev/Data/temp/s2_debug')
-            # gt_image_path = temp_folder / 'gt' / f'{iter:05d}.png'
-            # image_path = temp_folder / 'img' / f'{iter:05d}.png'
-            # mask_path = temp_folder / 'mask' / f'{iter:05d}.png'
+            ############ DEBUG ############ 
+            if iter % 100 == 0:
+                gt_image_np = gt_image.detach().cpu().numpy().transpose(1, 2, 0)
+                image_np = image.detach().cpu().numpy().transpose(1, 2, 0)
+                mask_np = mask.detach().cpu().numpy().transpose(1, 2, 0) 
+                mask_np = np.concatenate([mask_np, mask_np, mask_np], axis=-1)
 
-            # gt_image_path.parent.mkdir(parents=True, exist_ok=True)
-            # image_path.parent.mkdir(parents=True, exist_ok=True)
-            # mask_path.parent.mkdir(parents=True, exist_ok=True)
+                error_map = np.abs(gt_image_np - image_np)
+                # print('mask_np', mask_np.shape)
 
-            # Image.fromarray((gt_image_np * 255).astype(np.uint8)).save(gt_image_path)
-            # Image.fromarray((image_np * 255).astype(np.uint8)).save(image_path)
-            # Image.fromarray((mask_np * 255).astype(np.uint8)).save(mask_path)
+                temp_folder = Path('/local/home/agrigorev/Data/temp/s2_debug')
+                gt_image_path = temp_folder / 'gt' / f'{iter:05d}.png'
+                image_path = temp_folder / 'img' / f'{iter:05d}.png'
+                mask_path = temp_folder / 'mask' / f'{iter:05d}.png'
+                error_map_path = temp_folder / 'error' / f'{iter:05d}.png'
+
+                gt_image_path.parent.mkdir(parents=True, exist_ok=True)
+                image_path.parent.mkdir(parents=True, exist_ok=True)
+                mask_path.parent.mkdir(parents=True, exist_ok=True)
+                error_map_path.parent.mkdir(parents=True, exist_ok=True)
+
+                Image.fromarray((gt_image_np * 255).astype(np.uint8)).save(gt_image_path)
+                Image.fromarray((image_np * 255).astype(np.uint8)).save(image_path)
+                Image.fromarray((mask_np * 255).astype(np.uint8)).save(mask_path)
+                Image.fromarray((error_map * 255).astype(np.uint8)).save(error_map_path)
+            ############ DEBUG ############ 
 
             loss = 0
             for k, v in loss_dict.items():

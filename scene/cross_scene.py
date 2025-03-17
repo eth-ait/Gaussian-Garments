@@ -64,12 +64,13 @@ class crossScene(Scene):
         if not is_ff and self.gaussians.prev_xyz is None:
                 self.prep_start_from_frame(self.current_frame)
 
-        cross_from_glob = self.args.cross_from / 'point_cloud' 
+        # cross_from_glob = self.args.cross_from / 'point_cloud' 
         # _ply_path = sorted(glob.glob(cross_from_glob))[0]
-        _ply_path = sorted(cross_from_glob.glob('frame_*'))[0]
-        print("Loading Gaussian at frame {}".format(_ply_path.name))
-        ply_path = _ply_path / "local_point_cloud.ply"
+        # _ply_path = sorted(cross_from_glob.glob('frame_*'))[0]
+        # print("Loading Gaussian at frame {}".format(_ply_path.name))
+        ply_path = Path(self.subject_out) / DEFAULTS.stage2 / "Template" / "local_point_cloud.ply"
         self.gaussians.load_ply(ply_path)
+
 
         # image, mask and camera
         self.dataloader.load_frame(t)
@@ -99,18 +100,16 @@ class crossScene(Scene):
 
         stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence
 
+
+
         if is_ff:
             store_cam(self.dataloader.cam_info, stage2_path)
             print(f"Cross from model {self.args.cross_from}")
             # first frame ICP init
-            self.gaussians.mesh.v = self.sparse_icp()
 
-            # cross_from_glob = self.args.cross_from / 'point_cloud' 
-            # # _ply_path = sorted(glob.glob(cross_from_glob))[0]
-            # _ply_path = sorted(cross_from_glob.glob('frame_*'))[0]
-            # print("Loading Gaussian at frame {}".format(_ply_path.name))
-            # ply_path = _ply_path / "local_point_cloud.ply"
-            # self.gaussians.load_ply(ply_path)
+
+            self.gaussians.mesh.v = self.sparse_icp()
+            self.gaussians.mesh.v.requires_grad = True
 
             # body
             body = o3d.io.read_triangle_mesh(self.dataloader.smplx_list[t])
@@ -143,34 +142,40 @@ class crossScene(Scene):
             print("Loading Gaussian at frame_00000")
             ply_path = stage2_path / "point_cloud" / "frame_00000" / "local_point_cloud.ply"
             self.gaussians.load_ply(ply_path)
+            
 
         self.gaussians.spatial_lr_scale = self.cameras_extent
 
     def sparse_icp(self,):
         stage1_path = Path(self.subject_out) / DEFAULTS.stage1
-        stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence
+        stage2_path = Path(self.subject_out) / DEFAULTS.stage2
+        stage2_sequence_path = stage2_path / self.args.sequence
         points3D_path = stage1_path / "sparse" / "points3D.bin"
         source = self.binary_to_o3d(points3D_path)
 
-
         source_root = Path(DEFAULTS.data_root) / self.args.subject / self.args.sequence
-        target_root = stage2_path / 'colmap'
+        target_root = stage2_sequence_path / 'colmap'
         remove_folder = not os.path.exists(target_root)
 
         PrepareDataset(source_root, target_root, self.args.camera)
         COLMAP_recon(target_root, skip_dense=True)
 
-        points3D_path_out = stage2_path / "colmap" / "sparse" / "points3D.bin"
+        points3D_path_out = stage2_sequence_path / "colmap" / "sparse" / "points3D.bin"
+
+
         target = self.binary_to_o3d(points3D_path_out)
         # run icp
         reg_p2p = o3d.pipelines.registration.registration_icp(source, target, 10.)
 
-        glob_str = os.path.join(self.args.cross_from, 'meshes/frame_*.obj')
-        _src_mesh = sorted(glob.glob(os.path.join(self.args.cross_from, 'meshes/frame_*.obj')), key=lambda x: int(x[:-4].split('_')[-1]))[0]
+        # glob_str = os.path.join(self.args.cross_from, 'meshes/frame_*.obj')
+        # _src_mesh = sorted(glob.glob(glob_str), key=lambda x: int(x[:-4].split('_')[-1]))[0]
+
+        _src_mesh = stage2_path / 'Template' / 'template.obj'
+
+        # _src_mesh = 
         source.points =  o3d.utility.Vector3dVector(read_obj(_src_mesh)['vertices'])
         source.transform(reg_p2p.transformation)
         if remove_folder: shutil.rmtree(target_root) # delete point cloud files
-
         return torch.tensor(np.array(source.points), dtype=torch.float32).cuda()
 
     def binary_to_o3d(self, path, nb=5):

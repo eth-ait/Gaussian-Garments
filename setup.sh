@@ -21,10 +21,6 @@ export CUDA_HOME=$CONDA_PREFIX
 # bpy usually has a higher requirement to python env, so we install it early
 pip install bpy
 
-# install dependencies
-mkdir dependencies
-cd dependencies
-
 # Clone Animatable Gaussians repo 
 cd ..
 git clone https://github.com/lizhe00/AnimatableGaussians.git --recursive

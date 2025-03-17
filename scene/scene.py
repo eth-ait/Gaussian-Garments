@@ -74,6 +74,8 @@ class Scene:
             print("Loading Gaussian at frame frame_00000")
             ply_path = stage2_path / "point_cloud" / "frame_00000" / "local_point_cloud.ply"
             self.gaussians.load_ply(ply_path)
+        
+
             if self.gaussians.prev_xyz is None:
                 self.prep_start_from_frame(self.current_frame)
 
@@ -176,11 +178,14 @@ class Scene:
             
         self.gaussians.prev_offset = self.gaussians.prev_xyz[self.gaussians.neighbor_indices] - self.gaussians.prev_xyz[:,None]
 
-    def save(self, frame):
+    def save(self, frame, template=False):
         frame = int(frame)
+        if template:
+            point_cloud_path = Path(self.subject_out) / DEFAULTS.stage2 / "Template" 
+        else:
+            stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence
+            point_cloud_path = stage2_path / "point_cloud"/ f"frame_{frame:05d}"
 
-        stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence
-        point_cloud_path = stage2_path / "point_cloud"/ f"frame_{frame:05d}"
         self.gaussians.save_ply(point_cloud_path/ "local_point_cloud.ply", save_local=True)
         self.gaussians.save_ply(point_cloud_path / "point_cloud.ply")
 

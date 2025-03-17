@@ -339,6 +339,11 @@ class MeshGaussianModel(GaussianModel):
         self.max_radii2D = torch.zeros((self._xyz.shape[0]), device="cuda")
 
         self.mesh.v = nn.Parameter(self.mesh.v.clone().detach().requires_grad_(True))
+
+
+        # print('gaussians._features_dc.requires_grad', self._features_dc.requires_grad)
+        # print('gaussians.mesh.v.requires_grad', self.mesh.v.requires_grad)
+        # assert False
         
 
     def training_setup(self, training_args, is_ff):
@@ -346,7 +351,6 @@ class MeshGaussianModel(GaussianModel):
         self.percent_dense = training_args.percent_dense
         self.xyz_gradient_accum = torch.zeros((self._xyz.shape[0], 1), device="cuda")
         self.denom = torch.zeros((self._xyz.shape[0], 1), device="cuda")
-
 
         if is_ff:
             l = [
@@ -364,6 +368,8 @@ class MeshGaussianModel(GaussianModel):
                 {'params': [self.mesh.v], 'lr': training_args.position_lr_init * self.spatial_lr_scale, "name": "vertex"},
                 # {'params': [self._rotation], 'lr': training_args.rotation_lr, "name": "rotation"}
             ]
+
+        
 
         self.optimizer = torch.optim.Adam(l, lr=0.0, eps=1e-15)
         self.xyz_scheduler_args = get_expon_lr_func(lr_init=training_args.position_lr_init*self.spatial_lr_scale,
