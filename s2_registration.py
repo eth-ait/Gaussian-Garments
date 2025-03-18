@@ -285,7 +285,7 @@ if __name__ == "__main__":
 
             # assert False
             # ########### DEBUG ############ 
-            if iter % 1 == 0:
+            if iter % 100 == 0:
                 gt_image_np = gt_image.detach().cpu().numpy().transpose(1, 2, 0)
                 image_np = image.detach().cpu().numpy().transpose(1, 2, 0)
                 mask_np = mask.detach().cpu().numpy().transpose(1, 2, 0) 
