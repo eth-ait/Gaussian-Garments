@@ -289,7 +289,7 @@ if __name__ == "__main__":
                 error_map = np.abs(gt_image_np - image_np)
                 # print('mask_np', mask_np.shape)
 
-                temp_folder = Path('/local/home/agrigorev/Data/temp/s2_debug')
+                temp_folder = Path(DEFAULTS.temp_folder)
                 gt_image_path = temp_folder / 'gt' / f'{iter:05d}.png'
                 image_path = temp_folder / 'img' / f'{iter:05d}.png'
                 mask_path = temp_folder / 'mask' / f'{iter:05d}.png'
