@@ -91,9 +91,7 @@ def logger(loss, iteration, max_iter):
 
 def saver(viewer, gaussians, scene, args, bg):
     current_frame = scene.current_frame
-
-    print('current_frame', current_frame)
-
+    
     if current_frame == 0 or args.is_template:
         scene.save(current_frame, args.is_template)
 
