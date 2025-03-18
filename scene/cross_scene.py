@@ -108,7 +108,7 @@ class crossScene(Scene):
             # first frame ICP init
 
 
-            self.gaussians.mesh.v = self.sparse_icp()
+            # self.gaussians.mesh.v = self.sparse_icp()
             self.gaussians.mesh.v.requires_grad = True
 
             # body
