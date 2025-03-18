@@ -190,7 +190,6 @@ if __name__ == "__main__":
     dataloader = Dataloader(args)
     gaussians = MeshGaussianModel(args)
 
-    print('gaussians.xyz', gaussians._xyz.device, gaussians._xyz.shape)
 
 
     if args.is_template:
@@ -210,17 +209,6 @@ if __name__ == "__main__":
         is_first_frame = (t==0) or args.is_template
         collision_iteration = args.ff_collision_iteration if is_first_frame else args.collision_iteration
         iterations = args.first_frame_iterations + collision_iteration if is_first_frame else args.other_frame_iterations
-
-        # TODO: useful for testing, remove just before publising
-        ############ DEBUG ############ 
-        # skip first frame if it already exists 
-        if is_first_frame and (stage2_path / "point_cloud").exists(): 
-            continue 
-        # skip if we are starting from a specific frame
-        if t < args.start_from:
-            continue
-        ############ DEBUG ############
-
         
         scene.prepare_frame(t, is_first_frame)
         gaussians.training_setup(opt, is_first_frame and args.is_template_seq)

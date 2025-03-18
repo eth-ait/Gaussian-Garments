@@ -64,10 +64,6 @@ class crossScene(Scene):
         if not is_ff and self.gaussians.prev_xyz is None:
                 self.prep_start_from_frame(self.current_frame)
 
-        # cross_from_glob = self.args.cross_from / 'point_cloud' 
-        # _ply_path = sorted(glob.glob(cross_from_glob))[0]
-        # _ply_path = sorted(cross_from_glob.glob('frame_*'))[0]
-        # print("Loading Gaussian at frame {}".format(_ply_path.name))
         ply_path = Path(self.subject_out) / DEFAULTS.stage2 / "Template" / "local_point_cloud.ply"
 
 
