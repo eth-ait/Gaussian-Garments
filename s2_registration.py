@@ -219,6 +219,7 @@ if __name__ == "__main__":
             continue
         ############ DEBUG ############
 
+    
         
         scene.prepare_frame(t, is_first_frame)
         gaussians.training_setup(opt, is_first_frame and args.is_template_seq)

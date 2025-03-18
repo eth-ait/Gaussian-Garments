@@ -69,6 +69,8 @@ class Scene:
         self.current_frame = t
         stage2_path = Path(self.subject_out) / DEFAULTS.stage2 / self.args.sequence
 
+        print('1. self.gaussians.get_xyz', self.gaussians.get_xyz.device)
+
         # if not start optimizing from first frame
         if not is_ff:
             print("Loading Gaussian at frame frame_00000")
@@ -78,7 +80,7 @@ class Scene:
 
             if self.gaussians.prev_xyz is None:
                 self.prep_start_from_frame(self.current_frame)
-
+        print('1. self.gaussians.get_xyz', self.gaussians.get_xyz.device)
         # image, mask and camera
         self.dataloader.load_frame(t)
 
