@@ -24,6 +24,7 @@ elif 'ait-server' in hostname:
     DEFAULTS['server'] = 'ait'
     DEFAULTS['hostname'] = hostname
 
+    DEFAULTS['temp_folder'] = "/data/agrigorev/temp/s2_debug"
 
 elif 'ohws68' in hostname:
     DEFAULTS['data_root'] = f'/media/sdb/Data/opengaga/Inputs/'
@@ -31,6 +32,7 @@ elif 'ohws68' in hostname:
     DEFAULTS['aux_root'] = f'/media/sdb/Data/opengaga/aux_data/'
     DEFAULTS['server'] = 'agrigorev'
     DEFAULTS['hostname'] = hostname
+    DEFAULTS['temp_folder'] = '/local/home/agrigorev/Data/temp/s2_debug'
 
 
 DEFAULTS['stage1'] = 'stage1'
