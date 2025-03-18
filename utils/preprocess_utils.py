@@ -73,14 +73,14 @@ class PrepareDataset:
 
         cam_paths = sorted([path for path in self.source_root.iterdir() if path.is_dir() and path.name != 'smplx'])
         
-        _imgs = sorted((cam_paths[0]/DEFAULTS.rgb_images).glob("*.png"))
-        start_img_name = _imgs[0].name
+        # _imgs = sorted((cam_paths[0]/DEFAULTS.rgb_images).glob("*.png"))
+        # start_img_name = _imgs[0].name
 
-        _gmasks = sorted((cam_paths[0]/DEFAULTS.garment_masks).glob("*.png"))
-        start_gmask_name = _gmasks[0].name
+        # _gmasks = sorted((cam_paths[0]/DEFAULTS.garment_masks).glob("*.png"))
+        # start_gmask_name = _gmasks[0].name
 
-        _fgmasks = sorted((cam_paths[0]/DEFAULTS.foreground_masks).glob("*.png"))
-        start_fgmask_name = _fgmasks[0].name
+        # _fgmasks = sorted((cam_paths[0]/DEFAULTS.foreground_masks).glob("*.png"))
+        # start_fgmask_name = _fgmasks[0].name
 
         cam_num = len(cam_paths)
 
