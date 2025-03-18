@@ -18,7 +18,9 @@ if 'borong-System-Product-Name' in hostname:
     DEFAULTS['hostname'] = hostname
 
 elif 'ait-server' in hostname:
-    DEFAULTS['data_root'] = f'/mnt/scratch/HOODs/Datasets/'
+    DEFAULTS['data_root'] = f'/data/agrigorev/02_Projects/opengaga/Inputs/'
+    DEFAULTS['output_root'] = f'/data/agrigorev/02_Projects/opengaga/Outputs/'
+    DEFAULTS['aux_root'] = f'/data/agrigorev/02_Projects/opengaga/aux_data/'
     DEFAULTS['server'] = 'ait'
     DEFAULTS['hostname'] = hostname
 
