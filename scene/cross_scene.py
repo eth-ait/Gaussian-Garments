@@ -69,7 +69,11 @@ class crossScene(Scene):
         # _ply_path = sorted(cross_from_glob.glob('frame_*'))[0]
         # print("Loading Gaussian at frame {}".format(_ply_path.name))
         ply_path = Path(self.subject_out) / DEFAULTS.stage2 / "Template" / "local_point_cloud.ply"
+
+
+        print("1. self.gaussians._xyz", self.gaussians._xyz.device)
         self.gaussians.load_ply(ply_path)
+        print("2. self.gaussians._xyz", self.gaussians._xyz.device)
 
 
         # image, mask and camera
