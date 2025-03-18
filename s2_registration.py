@@ -160,6 +160,8 @@ if __name__ == "__main__":
     parser.add_argument("--ff_collision_iteration", type=int, default=2000)
     parser.add_argument('--start_from', type=int, default=-1)
 
+    parser.add_argument('--use_icp', action='store_true')
+
     parser.add_argument("--camera", default="PINHOLE", type=str) # only used for cross scene
     args = parser.parse_args(sys.argv[1:])
 

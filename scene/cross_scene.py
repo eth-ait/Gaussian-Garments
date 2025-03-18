@@ -105,11 +105,11 @@ class crossScene(Scene):
         if is_ff:
             store_cam(self.dataloader.cam_info, stage2_path)
             print(f"Cross from model {self.args.cross_from}")
+            
             # first frame ICP init
-
-
-            # self.gaussians.mesh.v = self.sparse_icp()
-            self.gaussians.mesh.v.requires_grad = True
+            if self.args.use_icp:
+                # self.gaussians.mesh.v = self.sparse_icp()
+                self.gaussians.mesh.v.requires_grad = True
 
             # body
             body = o3d.io.read_triangle_mesh(self.dataloader.smplx_list[t])

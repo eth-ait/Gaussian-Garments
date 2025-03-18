@@ -104,7 +104,7 @@ class Dataloader():
         # self._img_names = [img.name for img in img_files]
         # self._gm_names = [gm.name for gm in gm_files]
         # self._fg_names = [fg.name for fg in fg_files]
-        self._len = len(self._img_names)
+        self._len = len(self._img_names[self.cam_paths[0].name])
         # smplx info
         self.smplx_list = sorted(glob.glob(os.path.join(seq_path, "smplx/*.ply")))
 
