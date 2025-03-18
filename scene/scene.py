@@ -78,6 +78,7 @@ class Scene:
 
             if self.gaussians.prev_xyz is None:
                 self.prep_start_from_frame(self.current_frame)
+
         # image, mask and camera
         self.dataloader.load_frame(t)
 
@@ -158,6 +159,7 @@ class Scene:
 
     def post_each_frame(self, is_ff, num_knn=20):
 
+        
         self.gaussians.prev_xyz = self.gaussians.get_xyz.detach()
         self.gaussians.prev_rot = self.gaussians.get_rotation.detach()
         if is_ff:
