@@ -86,9 +86,25 @@ class PrepareDataset:
 
         for idx, _cam in enumerate(cam_paths):
             print(f"Reading first frame for camera {idx+1}/{cam_num} ")
-            _img = _cam / DEFAULTS.rgb_images / start_img_name
-            _gmask = _cam / DEFAULTS.garment_masks / start_gmask_name
-            _fgmask = _cam / DEFAULTS.foreground_masks / start_fgmask_name
+            cam_name = _cam.name
+
+            _imgs = sorted((_cam/DEFAULTS.rgb_images).glob("*.png"))
+            if len(_imgs) == 0:
+                _imgs = sorted((_cam/DEFAULTS.rgb_images).glob("*.jpg"))
+
+            _gmasks = sorted((_cam/DEFAULTS.garment_masks).glob("*.png"))
+            if len(_gmasks) == 0:
+                _gmasks = sorted((_cam/DEFAULTS.garment_masks).glob("*.jpg"))
+
+            _fgmasks = sorted((_cam/DEFAULTS.foreground_masks).glob("*.png"))
+
+            _img = _imgs[0]
+            _gmask = _gmasks[0]
+            _fgmask = _fgmasks[0]
+
+            # _img = _cam / DEFAULTS.rgb_images / start_img_name
+            # _gmask = _cam / DEFAULTS.garment_masks / start_gmask_name
+            # _fgmask = _cam / DEFAULTS.foreground_masks / start_fgmask_name
             image_dict = load_masked_image(_img, _gmask, _fgmask, np.array([0,1,0]))
             mask = image_dict['mask']
             masked_img = image_dict['masked_img']
