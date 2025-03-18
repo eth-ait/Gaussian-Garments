@@ -292,7 +292,6 @@ if __name__ == "__main__":
             # print('visibility_filter', visibility_filter.shape, visibility_filter.sum())
 
             # assert False
-            assert False
             # ########### DEBUG ############ 
             if iter % 100 == 0:
                 gt_image_np = gt_image.detach().cpu().numpy().transpose(1, 2, 0)
