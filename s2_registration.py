@@ -111,6 +111,11 @@ def saver(viewer, gaussians, scene, args, bg):
     render_cam = scene.getTrainCameras()[0]
     gt_img = render_cam.original_image.detach().cpu()
     img = render(render_cam, gaussians, args, bg)["render"].detach().cpu()
+
+    if viewer is None:
+        h, w = gt_img.shape[-2:]
+        viewer = HeadlessRenderer(size=(2*w, 2*h))
+
     penalize = render_cam.gt_alpha_mask
     penalize = torch.cat([penalize,penalize,penalize]).detach().cpu()
     diff = torch.abs(img - gt_img)
@@ -132,6 +137,8 @@ def saver(viewer, gaussians, scene, args, bg):
         render_path = sequence_path / "renders" / f"{current_frame:05d}.png"
     render_path.parent.mkdir(parents=True, exist_ok=True)
     container.save(render_path)
+
+    return viewer
         
 
 if __name__ == "__main__":
@@ -192,8 +199,9 @@ if __name__ == "__main__":
     else:
         scene = crossScene(args, dataloader, gaussians)
 
-    w, h = 940, 1280
-    viewer = HeadlessRenderer(size=(2*w, 2*h))
+    # w, h = 940, 1280
+    # viewer = HeadlessRenderer(size=(2*w, 2*h))
+    viewer = None
 
     stage2_path = Path(args.subject_out) / DEFAULTS.stage2 / args.sequence
 
@@ -353,7 +361,7 @@ if __name__ == "__main__":
 
                 if iter == iterations:
                     print("\n[ITER {}] Saving Gaussians".format(iter))
-                    saver(viewer, gaussians, scene, args, bg)
+                    viewer = saver(viewer, gaussians, scene, args, bg)
 
 
         progress_bar.close()
