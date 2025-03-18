@@ -304,10 +304,10 @@ if __name__ == "__main__":
                 mask_path.parent.mkdir(parents=True, exist_ok=True)
                 error_map_path.parent.mkdir(parents=True, exist_ok=True)
 
-                print('gt_image_np', gt_image_np.shape, gt_image_np.min(), gt_image_np.max())
-                print('image_np', image_np.shape, image_np.min(), image_np.max())
-                print('mask_np', mask_np.shape, mask_np.min(), mask_np.max())
-                print('error_map', error_map.shape, error_map.min(), error_map.max())
+                # print('gt_image_np', gt_image_np.shape, gt_image_np.min(), gt_image_np.max())
+                # print('image_np', image_np.shape, image_np.min(), image_np.max())
+                # print('mask_np', mask_np.shape, mask_np.min(), mask_np.max())
+                # print('error_map', error_map.shape, error_map.min(), error_map.max())
 
                 Image.fromarray((gt_image_np * 255).astype(np.uint8)).save(gt_image_path)
                 Image.fromarray((image_np * 255).astype(np.uint8)).save(image_path)
