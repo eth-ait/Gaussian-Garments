@@ -100,6 +100,12 @@ def load_masked_image(image_path, garment_mask_path, fg_mask_path, bg_color=None
     bg_mask = 1 - fg_mask
     penalized_mask = (garment_mask + bg_mask).clip(0, 1)
 
+
+    print('garment_mask', garment_mask.shape, garment_mask.min(), garment_mask.max())
+    print('fg_mask', fg_mask.shape, fg_mask.min(), fg_mask.max())
+    print('bg_mask', bg_mask.shape, bg_mask.min(), bg_mask.max())
+    print('penalized_mask', penalized_mask.shape, penalized_mask.min(), penalized_mask.max())
+
     masked_img = image * garment_mask[...,None] + bg_color * (1 - garment_mask[...,None])
     masked_img = (masked_img * 255).astype(np.uint8)
     
