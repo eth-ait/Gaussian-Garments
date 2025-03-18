@@ -314,7 +314,7 @@ if __name__ == "__main__":
                 Image.fromarray((mask_np * 255).astype(np.uint8)).save(mask_path)
                 Image.fromarray((error_map * 255).astype(np.uint8)).save(error_map_path)
 
-                assert False
+                # assert False
             # ########### DEBUG ############ 
 
             loss = 0
