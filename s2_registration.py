@@ -190,7 +190,7 @@ if __name__ == "__main__":
     dataloader = Dataloader(args)
     gaussians = MeshGaussianModel(args)
 
-    print('gaussians.xyz', gaussians._xyz.device)
+    print('gaussians.xyz', gaussians._xyz.device, gaussians._xyz.shape)
 
 
     if args.is_template:
