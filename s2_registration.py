@@ -278,41 +278,36 @@ if __name__ == "__main__":
             else:
                 loss_dict.update(gaussians.mesh.get_energy_loss(args, use_body))
 
-            # for k, v in loss_dict.items():
-            #     print(f"{k}: {v.item():.5f}")
-
-            # print('visibility_filter', visibility_filter.shape, visibility_filter.sum())
-
             # assert False
             # ########### DEBUG ############ 
-            if iter % 100 == 0:
-                gt_image_np = gt_image.detach().cpu().numpy().transpose(1, 2, 0)
-                image_np = image.detach().cpu().numpy().transpose(1, 2, 0)
-                mask_np = mask.detach().cpu().numpy().transpose(1, 2, 0) 
-                mask_np = np.concatenate([mask_np, mask_np, mask_np], axis=-1)
+            # if iter % 100 == 0:
+                # gt_image_np = gt_image.detach().cpu().numpy().transpose(1, 2, 0)
+                # image_np = image.detach().cpu().numpy().transpose(1, 2, 0)
+                # mask_np = mask.detach().cpu().numpy().transpose(1, 2, 0) 
+                # mask_np = np.concatenate([mask_np, mask_np, mask_np], axis=-1)
 
-                error_map = np.abs(gt_image_np - image_np)
+                # error_map = np.abs(gt_image_np - image_np)
 
-                temp_folder = Path(DEFAULTS.temp_folder)
-                gt_image_path = temp_folder / 'gt' / f'{iter:05d}.png'
-                image_path = temp_folder / 'img' / f'{iter:05d}.png'
-                mask_path = temp_folder / 'mask' / f'{iter:05d}.png'
-                error_map_path = temp_folder / 'error' / f'{iter:05d}.png'
+                # temp_folder = Path(DEFAULTS.temp_folder)
+                # gt_image_path = temp_folder / 'gt' / f'{iter:05d}.png'
+                # image_path = temp_folder / 'img' / f'{iter:05d}.png'
+                # mask_path = temp_folder / 'mask' / f'{iter:05d}.png'
+                # error_map_path = temp_folder / 'error' / f'{iter:05d}.png'
 
-                gt_image_path.parent.mkdir(parents=True, exist_ok=True)
-                image_path.parent.mkdir(parents=True, exist_ok=True)
-                mask_path.parent.mkdir(parents=True, exist_ok=True)
-                error_map_path.parent.mkdir(parents=True, exist_ok=True)
+                # gt_image_path.parent.mkdir(parents=True, exist_ok=True)
+                # image_path.parent.mkdir(parents=True, exist_ok=True)
+                # mask_path.parent.mkdir(parents=True, exist_ok=True)
+                # error_map_path.parent.mkdir(parents=True, exist_ok=True)
 
-                # print('gt_image_np', gt_image_np.shape, gt_image_np.min(), gt_image_np.max())
-                # print('image_np', image_np.shape, image_np.min(), image_np.max())
-                # print('mask_np', mask_np.shape, mask_np.min(), mask_np.max())
-                # print('error_map', error_map.shape, error_map.min(), error_map.max())
+                # # print('gt_image_np', gt_image_np.shape, gt_image_np.min(), gt_image_np.max())
+                # # print('image_np', image_np.shape, image_np.min(), image_np.max())
+                # # print('mask_np', mask_np.shape, mask_np.min(), mask_np.max())
+                # # print('error_map', error_map.shape, error_map.min(), error_map.max())
 
-                Image.fromarray((gt_image_np * 255).astype(np.uint8)).save(gt_image_path)
-                Image.fromarray((image_np * 255).astype(np.uint8)).save(image_path)
-                Image.fromarray((mask_np * 255).astype(np.uint8)).save(mask_path)
-                Image.fromarray((error_map * 255).astype(np.uint8)).save(error_map_path)
+                # Image.fromarray((gt_image_np * 255).astype(np.uint8)).save(gt_image_path)
+                # Image.fromarray((image_np * 255).astype(np.uint8)).save(image_path)
+                # Image.fromarray((mask_np * 255).astype(np.uint8)).save(mask_path)
+                # Image.fromarray((error_map * 255).astype(np.uint8)).save(error_map_path)
 
                 # assert False
             # ########### DEBUG ############ 
