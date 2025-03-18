@@ -188,7 +188,7 @@ if __name__ == "__main__":
     
     # build components
     dataloader = Dataloader(args)
-    gaussians = MeshGaussianModel(args)
+    gaussians = MeshGaussianModel(args).cuda()
 
 
     if args.is_template:

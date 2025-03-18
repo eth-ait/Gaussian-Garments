@@ -60,7 +60,6 @@ class crossScene(Scene):
 
         self.current_frame = t
 
-        print("1. self.gaussians._xyz", self.gaussians._xyz.device)
         # if not start optimizing from first frame
         if not is_ff and self.gaussians.prev_xyz is None:
                 self.prep_start_from_frame(self.current_frame)
