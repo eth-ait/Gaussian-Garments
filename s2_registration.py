@@ -94,7 +94,7 @@ def saver(viewer, gaussians, scene, args, bg):
 
     print('current_frame', current_frame)
 
-    if current_frame == 0:
+    if current_frame == 0 or args.is_template:
         scene.save(current_frame, args.is_template)
 
     stage2_path = Path(args.subject_out) / DEFAULTS.stage2 
