@@ -60,6 +60,7 @@ class crossScene(Scene):
 
         self.current_frame = t
 
+        print("1. self.gaussians._xyz", self.gaussians._xyz.device)
         # if not start optimizing from first frame
         if not is_ff and self.gaussians.prev_xyz is None:
                 self.prep_start_from_frame(self.current_frame)
@@ -71,10 +72,7 @@ class crossScene(Scene):
         ply_path = Path(self.subject_out) / DEFAULTS.stage2 / "Template" / "local_point_cloud.ply"
 
 
-        print("1. self.gaussians._xyz", self.gaussians._xyz.device)
         self.gaussians.load_ply(ply_path)
-        print("2. self.gaussians._xyz", self.gaussians._xyz.device)
-
 
         # image, mask and camera
         self.dataloader.load_frame(t)
