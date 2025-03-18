@@ -94,7 +94,7 @@ def load_masked_image(image_path, garment_mask_path, fg_mask_path, bg_color=None
     garment_mask = np.array(Image.open(garment_mask_path)) / 255
 
     if str(garment_mask_path).endswith('jpg'):
-        garment_mask = garment_mask[...,0]
+        garment_mask = garment_mask[...,0] > 0.5
 
     fg_mask = np.array(Image.open(fg_mask_path)) / 255
     bg_mask = 1 - fg_mask
