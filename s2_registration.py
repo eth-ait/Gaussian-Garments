@@ -92,6 +92,8 @@ def logger(loss, iteration, max_iter):
 def saver(viewer, gaussians, scene, args, bg):
     current_frame = scene.current_frame
 
+    print('current_frame', current_frame)
+
     if current_frame == 0:
         scene.save(current_frame, args.is_template)
 
@@ -122,11 +124,6 @@ def saver(viewer, gaussians, scene, args, bg):
     _ait = ait_render(viewer, gaussians.mesh.v, gaussians.mesh.f, render_cam, gaussians.mesh.body.vertices, gaussians.mesh.body.faces) / 255
     col1 = torch.cat([gt_img, penalize], axis=1)
     col2 = torch.cat([img, diff], axis=1)
-
-    print('_ait', _ait.shape)
-    print('col1', col1.shape)
-    print('col2', col2.shape)
-
     container = torch.cat([col1, col2, _ait], axis=-1)
 
     container = Image.fromarray(np.array(container*255.0, dtype=np.byte).transpose((1, 2, 0)), "RGB")
