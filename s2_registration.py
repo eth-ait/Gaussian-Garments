@@ -283,7 +283,7 @@ if __name__ == "__main__":
 
             print('visibility_filter', visibility_filter.shape, visibility_filter.sum())
 
-            assert False
+            # assert False
 
 
             ########### DEBUG ############ 
