@@ -221,7 +221,7 @@ if __name__ == "__main__":
         desc = "{} frame{} --> {}/{}".format("Reconstruct" if is_first_frame else "Optimize", scene.current_frame, t+1, dataloader._len)
         progress_bar = tqdm(range(iterations), desc=desc)
 
-        # iterations = 10
+        iterations = 10
         for iter in range(1, iterations+1):
             use_body = iter > iterations - collision_iteration
             # first frame remove collision
