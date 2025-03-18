@@ -190,6 +190,8 @@ if __name__ == "__main__":
     dataloader = Dataloader(args)
     gaussians = MeshGaussianModel(args)
 
+    print('gaussians.xyz', gaussians._xyz.device)
+
 
     if args.is_template:
         scene = Scene(args, dataloader, gaussians)
