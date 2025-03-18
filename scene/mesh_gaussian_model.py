@@ -123,9 +123,10 @@ class MeshGaussianModel(GaussianModel):
     
     @property
     def get_xyz(self):
-        # print('self.face_orien_mat', self.face_orien_mat.device)
-        # print('self._xyz', self._xyz.device)
-        # print('self.binding', self.binding.device)
+        print('self.face_orien_mat', self.face_orien_mat.device, self.face_orien_mat.shape)
+        print('self._xyz', self._xyz.device, self._xyz.shape)
+        print('self.binding', self.binding.device, self.binding.shape)
+        print('self.face_orien_mat[self.binding]', self.face_orien_mat[self.binding].shape)
 
         self._xyz = self._xyz.to(self.face_orien_mat.device)
         xyz = torch.bmm(self.face_orien_mat[self.binding], self._xyz[..., None]).squeeze(-1)
