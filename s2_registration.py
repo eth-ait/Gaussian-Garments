@@ -281,6 +281,10 @@ if __name__ == "__main__":
             for k, v in loss_dict.items():
                 print(f"{k}: {v.item():.5f}")
 
+            print('visibility_filter', visibility_filter.shape, visibility_filter.sum())
+
+            assert False
+
 
             ########### DEBUG ############ 
             # if iter % 1 == 0:
