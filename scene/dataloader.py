@@ -114,7 +114,7 @@ class AvatarDataloader(Dataset):
             info['fg_names'] = fg_names
 
 
-            info['frame_num'] = len(info['img_names'])
+            info['frame_num'] = len(info['img_names'][self.cam_paths[0].name])
             # collect info
             self.dataset_info[seq_name] = info
             self.frame_collection += [(seq_name, f, c) for f in range(info['frame_num']) for c in info['cam_names']]
