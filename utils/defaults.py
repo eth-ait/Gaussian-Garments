@@ -5,34 +5,11 @@ from munch import munchify
 hostname = socket.gethostname()
 DEFAULTS = dict()
 
-# use these if you need to check which machine/user is running the code
-if 'borong-System-Product-Name' in hostname:
-    DEFAULTS['user'] = os.getlogin()
-    DEFAULTS['user_id'] = os.getuid()
 
-    DEFAULTS['output_root'] = '/home/hramzan/Desktop/semester-project/Gaussian-Garments/data/outputs'
-    DEFAULTS['data_root'] = '/home/hramzan/Desktop/semester-project/Gaussian-Garments/data/input'
-    DEFAULTS['aux_root'] = '/home/hramzan/Desktop/semester-project/Gaussian-Garments/data/input'
-    
-    DEFAULTS['server'] = 'local'
-    DEFAULTS['hostname'] = hostname
 
-elif 'ait-server' in hostname:
-    DEFAULTS['data_root'] = f'/data/agrigorev/02_Projects/opengaga/Inputs/'
-    DEFAULTS['output_root'] = f'/data/agrigorev/02_Projects/opengaga/Outputs/'
-    DEFAULTS['aux_root'] = f'/data/agrigorev/02_Projects/opengaga/aux_data/'
-    DEFAULTS['server'] = 'ait'
-    DEFAULTS['hostname'] = hostname
-
-    DEFAULTS['temp_folder'] = "/data/agrigorev/temp/s2_debug"
-
-elif 'ohws68' in hostname:
-    DEFAULTS['data_root'] = f'/media/sdb/Data/opengaga/Inputs/'
-    DEFAULTS['output_root'] = f'/media/sdb/Data/opengaga/gaugar_models/'
-    DEFAULTS['aux_root'] = f'/media/sdb/Data/opengaga/aux_data/'
-    DEFAULTS['server'] = 'agrigorev'
-    DEFAULTS['hostname'] = hostname
-    DEFAULTS['temp_folder'] = '/local/home/agrigorev/Data/temp/s2_debug'
+DEFAULTS['output_root'] = '/path/to/output/dir'
+DEFAULTS['data_root'] = '/path/to/input/dir'
+DEFAULTS['aux_root'] = '/path/to/auxiliary/dir'
 
 
 DEFAULTS['stage1'] = 'stage1'
@@ -46,3 +23,7 @@ DEFAULTS['foreground_masks'] = 'foreground_masks'
 
 # turns the dictionary into a Munch object (so you can use e.g. DEFAULTS.data_root)
 DEFAULTS = munchify(DEFAULTS)
+
+for d in ['data_root', 'aux_root']:
+    if not os.path.exists(DEFAULTS[d]):
+        raise FileNotFoundError(f"DEFAULTS.{d} ({DEFAULTS[d]}) does not exist! Follow instructions in DataPreparation.md to set it up.")
