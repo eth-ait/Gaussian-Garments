@@ -37,7 +37,6 @@ def rm_dimension(data: dict):
             data[k] = v[0]
 
 def logger(loss, bar, iteration):
-    # TODO: what's acc and why catch exception?
     global acc
     try:
         acc = {f'AVG_{k}': (acc[f'AVG_{k}']*(iteration-1)+v) / iteration for k, v in loss.items()}

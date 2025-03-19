@@ -52,7 +52,7 @@ class ModelParams(ParamGroup):
         self._resolution = -1
         self._white_background = False
         self.data_device = "cuda"
-        self.eval = False # TODO: False in stage 1, True in stage 2
+        self.eval = False 
         self.llffhold = 12
 
         super().__init__(parser, "Loading Parameters", sentinel)

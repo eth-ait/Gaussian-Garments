@@ -9,9 +9,9 @@ DEFAULTS['aux_root'] = f'/path/to/auxilliary/data/folder'
 ```
 
 
-This folder should contain the SMPL-X body models and teh SMPL-X mesh segmentation.
+This folder should contain the SMPL-X body models and the SMPL-X mesh segmentation.
 
-You can download the body models from the [official website](https://smpl-x.is.tue.mpg.de/). Put them under The version of the model should correspond to the one used to create body meshes in your dataset.
+You can download the body models from the [official website](https://smpl-x.is.tue.mpg.de/). The version of the model should correspond to the one used to create body meshes in your dataset.
 
 The SMPL-X mesh segmentation is located [here](https://github.com/zkf1997/COINS/blob/main/configuration/smplx_vert_segmentation.json). 
 
@@ -37,7 +37,7 @@ DEFAULTS['data_root'] = '/path/to/input/folder'
 Our main algorithm requires the following data:
 1. RGB frames of the multi-view videos
 2. Binary masks of the garment of interest
-3. Binary masks of the foreground (covering the body together with all garments)
+3. Binary masks of the foreground (covering the body together with all the garments)
 4. Camera parameters
 5. SMPL-X parameters for each frame together with corresponding body meshes.
 
@@ -61,16 +61,14 @@ DEFAULTS.data_root/
     │   │   ├── rgb_images/
     │   │   │    ├── *frame_id*.png
     │   │   │    └── ...
-    │   │   └── garment_masks/
+    │   │   ├── garment_masks/
     │   │   │    ├── *frame_id*.png
     │   │   │    └── ...
     │   │   └── foreground_masks/
     │   │        ├── *frame_id*.png
     │   │        └── ...
     │   ├── *camera_id*/
-    │   │   ├── rgb_images/
-    │   │   ├── garment_masks/
-    │   │   └── foreground_masks/
+    │   │   └── ...
     │   ├── ...
     │   ├──smplx/
     │   │   ├── *frame_id*.pkl
@@ -80,7 +78,7 @@ DEFAULTS.data_root/
     ├── *sequence_id*/
         └── ...
 ```
-**You can download a demonstrational folder with examples for each of the file types [here](TODO).**
+**You can download a demonstrational folder with examples for each of the file types [here](https://drive.google.com/file/d/1gtlAiL1_uXGIvV6YFWHp4N9EJk8Vt977/view?usp=drive_link).**
 
 #### Camera parameters
 The camera parameters for each sequence are stored in `cameras.json`, which contains a dictionary of format `{camera_id:{intrinsics: ; extrinsics: ;}; ...}`, where

@@ -28,7 +28,7 @@ elif 'ait-server' in hostname:
 
 elif 'ohws68' in hostname:
     DEFAULTS['data_root'] = f'/media/sdb/Data/opengaga/Inputs/'
-    DEFAULTS['output_root'] = f'/media/sdb/Data/opengaga/Outputs/'
+    DEFAULTS['output_root'] = f'/media/sdb/Data/opengaga/gaugar_models/'
     DEFAULTS['aux_root'] = f'/media/sdb/Data/opengaga/aux_data/'
     DEFAULTS['server'] = 'agrigorev'
     DEFAULTS['hostname'] = hostname

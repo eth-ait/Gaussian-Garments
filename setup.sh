@@ -1,14 +1,14 @@
-#!/bin/bash
+!/bin/bash
 
 # # Initialize Conda (only needed for non-login shells)
-# eval "$(conda shell.bash hook)"
+eval "$(conda shell.bash hook)"
 
 # # create the environment
-# conda create -n gg python=3.10
+conda create -n gaugar python=3.10
 
 # # activate the environment
-# conda activate gg
-# echo "Conda environment 'gg' is now activated."
+conda activate gaugar
+# echo "Conda environment 'gaugar' is now activated."
 
 # install conda dependencies
 conda install pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 pytorch-cuda=11.8 -c pytorch -c nvidia -y

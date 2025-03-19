@@ -240,20 +240,11 @@ class Doll(MeshGaussianModel):
             gaussian = AvatarSimulationModel(_tmp, texture_size=args.texture_size)
             self.garments.append(gaussian)
             avatar = AvatarNet(args, gaussian).to('cuda')
-            avatar.load_ckpt(_tmp / DEFAULTS.stage3, load_optm=False)
+
+            stage3_path = _tmp / DEFAULTS.stage3
+            avatar.load_ckpt(stage3_path, load_optm=False)
             self.avatar_nets.append(avatar)
 
-        # assign edited textures
-        self.xyz_list = None # TODO: Do we need that?
-        # self.xyz_list = [] # debug: reset xyz
-        # if args.texture_list is None: args.texture_list = [None] * len(args.garment_list)
-        # for i, texture in enumerate(args.texture_list):
-        #     if texture is not None:
-        #         _texture_path = os.path.join(args.avatar_list[i], "edit_texture", texture)
-        #         self.garments[i].load_texture(_texture_path)
-        #         self.xyz_list.append(self.garments[i]._xyz) # debug: reset xyz
-        #     else:
-        #         self.xyz_list.append(None) # debug: reset xyz
 
         self.body = None
 
@@ -267,9 +258,6 @@ class Doll(MeshGaussianModel):
             # forward avatar_net
             style_output, _ = avatar(ambient_list[i], normal_list[i], camera)
             style_list.append(style_output)
-            # debug: reset xyz
-            # if self.xyz_list[i] is not None:
-            #     garment._xyz[self.xyz_list[i]!=0] = self.xyz_list[i][self.xyz_list[i]!=0]
             
         return style_list
 
@@ -344,12 +332,10 @@ class Doll(MeshGaussianModel):
 class Simulation(Dataset):
     def __init__(self, args):
         # simulation and templates
-        self.simu_pkl = pickle.load(open(args.simu_path, 'rb'))
+        self.simu_pkl = pickle.load(open(args.traj_path, 'rb'))
         self.garment_names = self.simu_pkl['garment_names']
-        # self.outfit_name = "_".join(self.garment_names)
 
         models_root = Path(DEFAULTS.output_root)
-        # uv_tmp_path = [glob.glob(os.path.join("../datas", name, '*_uv.obj'))[0] for name in self.outfit_name]
         uv_tmp_path = [models_root / name / DEFAULTS.stage1 / 'template_uv.obj' for name in self.garment_names]
         self.uv_tmp_list = [read_obj(path) for path in uv_tmp_path]
         # camera info
@@ -427,56 +413,7 @@ class Simulation(Dataset):
         # select visible gaussians
         self.doll.prepare_gaussian(camera.camera_center, style_list)
 
-def registration_to_pkl(args):
-    if not os.path.exists(args.simu_path):
-        _meshes = glob.glob(os.path.join(args.scratch_path, 'Registration_artur_44', args.registration, 'meshes/frame_*.obj'))
-        mesh_list = sorted(_meshes, key=lambda x: int(x[:-4].split('frame_')[-1]))
-        
-        take_folder = args.garment_list[0].split("Take")[0] + "T" +  args.registration.split('/')[-1][1:]
-        try: 
-            body_list = sorted(glob.glob(os.path.join(args.ssd_path, take_folder, "Meshes/smplx/*.ply")))
-            assert len(body_list), "No body found"
-        except:
-            body_list = sorted(glob.glob(os.path.join(args.scratch_path, take_folder, "Meshes/smplx/*.ply")))
-            assert len(body_list), "No body found"
 
-
-        pred = []
-        obstacle = []
-        for _body, _mesh in zip(body_list, mesh_list):
-            mesh = read_obj(_mesh)
-            body = trimesh.load(open(_body, "rb"), "PLY")
-            pred.append(mesh['vertices'])
-            obstacle.append(body.vertices)
-        
-        output = {"pred": np.array(pred),
-                "obstacle": np.array(obstacle),
-                "obstacle_faces": np.array(body.faces),
-                "garment_names": [args.registration.split('/')[-2]]}
-        pickle.dump(output, open(args.simu_path, 'wb'))
-
-def load_scan(args):
-    scan_list = []
-    atlas_mesh_list = sorted(glob.glob(os.path.join(args.source_path , args.gt_mesh, "Meshes_pkl/atlas-f*.pkl")))
-    mesh_list = sorted(glob.glob(os.path.join(args.source_path , args.gt_mesh, "Meshes_pkl/mesh-f*.pkl")))
-
-    for _atlas, _mesh in zip(atlas_mesh_list, mesh_list):
-        try:
-            # load scan mesh and atlas data
-            _texture = _atlas.replace('.pkl', '.png')
-            if not os.path.exists(_texture):
-                texture = pickle.load(open(_atlas, "rb"))
-                Image.fromarray(texture).transpose(method=Image.Transpose.FLIP_TOP_BOTTOM).convert("RGB").save(_texture)
-
-            mesh_dict = pickle.load(open(_mesh, "rb"))
-            # init visualiation obj
-            scan_mesh = VTMeshes([mesh_dict['vertices']], [mesh_dict['faces']], uv_coords=[mesh_dict['uvs']], texture_paths=[_texture])
-            scan_mesh.backface_culling = False
-        except:
-            breakpoint()
-        scan_list.append(scan_mesh)
-
-    return scan_list
 
 class Config(ParamGroup):
     def __init__(self, parser) -> None:
@@ -495,7 +432,7 @@ if __name__ == "__main__":
     parser.add_argument("--HQ", action="store_true")
     parser.add_argument("--start_from", type=int, default=0)
     parser.add_argument('--gt_mesh', type=str, required=False, default='')
-    parser.add_argument('--simu_path', type=str, required=True, default='')
+    parser.add_argument('--traj_path', type=str, required=True, default='')
     parser.add_argument('--output_path', type=str, required=True, default='')
     parser.add_argument("--avatar_list", "-al", required=False, nargs='+', type=str, default=[], help="path to avatar model folder")
     parser.add_argument("--garment_list", "-gl", required=False, nargs='+', type=str, default=[], help="template for garments")
@@ -516,9 +453,8 @@ if __name__ == "__main__":
     cmap = plt.get_cmap('gist_rainbow')
 
     args.output_path = args.output_path
-    args.avatar_list = [os.path.join(args.scratch_path, 'Registration_artur_44', path) for path in args.avatar_list]
-    if len(args.registration): registration_to_pkl(args)
-    if len(args.gt_mesh): scan_list = load_scan(args)
+    # args.avatar_list = [os.path.join(args.scratch_path, 'Registration_artur_44', path) for path in args.avatar_list]
+
 
 
     # init objects
@@ -540,9 +476,6 @@ if __name__ == "__main__":
             _, _garm_depth, _ = ait_render(vert_list, face_list, cam=ait_cam)
             _body_mask = _body_garm_depth < _garm_depth
 
-            if len(args.gt_mesh):
-                _scan, _, _ = scan_render(scan_list[idx], ait_cam)
-
             # final
             _final = simu.doll.render(gs_cam, simu.doll, args, bg, _body, _body_mask)
             # raw gaussian
@@ -550,10 +483,7 @@ if __name__ == "__main__":
             # style output
             _style = simu.doll.render(gs_cam, simu.doll, args, bg, _body, _body_mask, simu.doll.style_features)
             
-            if len(args.gt_mesh):
-                image = np.concatenate([_garment, _final, _scan], axis=1)
-            else: 
-                image = np.concatenate([_raw, _style, _final, _garment], axis=1)
+            image = np.concatenate([_raw, _style, _final, _garment], axis=1)
             os.makedirs(os.path.join(simu.output, f"{args.name}"), exist_ok=True)
             Image.fromarray(np.array(image, dtype=np.uint8)).save(os.path.join(simu.output, f"{args.name}/{idx:04d}.png"))
 
