@@ -24,7 +24,7 @@ def rotmat2qvec(R):
     return qvec
 
 class PrepareDataset:
-    def __init__(self, source_root, target_root, cam_type, fg_label="full_body"):
+    def __init__(self, source_root, target_root, cam_type, frame_idx, fg_label="full_body"):
         """
         Initializes the preprocessing utility for a given subject, sequence, and garment type.
         This method reads data from the input folder and writes the processed data to the output folder subdirectory 'stage1'. 
@@ -36,6 +36,7 @@ class PrepareDataset:
         """
         self.fg_label = fg_label
         self.cam_type = cam_type
+        self.frame_idx = frame_idx
 
         self.target_root = target_root
         self.source_root = source_root
@@ -73,14 +74,16 @@ class PrepareDataset:
 
         cam_paths = sorted([path for path in self.source_root.iterdir() if path.is_dir() and path.name != 'smplx'])
         
+        frame_idx = self.frame_idx
+
         _imgs = sorted((cam_paths[0]/DEFAULTS.rgb_images).glob("*.png"))
-        start_img_name = _imgs[0].name
+        start_img_name = _imgs[frame_idx].name
 
         _gmasks = sorted((cam_paths[0]/DEFAULTS.garment_masks).glob("*.png"))
-        start_gmask_name = _gmasks[0].name
+        start_gmask_name = _gmasks[frame_idx].name
 
         _fgmasks = sorted((cam_paths[0]/DEFAULTS.foreground_masks).glob("*.png"))
-        start_fgmask_name = _fgmasks[0].name
+        start_fgmask_name = _fgmasks[frame_idx].name
 
         cam_num = len(cam_paths)
 

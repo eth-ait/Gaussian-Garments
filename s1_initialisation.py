@@ -13,6 +13,7 @@ def initialization_parser():
     parser.add_argument("--sequence", "-q", required=True, type=str, help="The name of the sequence dir, containing cameras.json")
     parser.add_argument("--camera", default="PINHOLE", type=str)
     parser.add_argument("--no_gpu", action='store_true')
+    parser.add_argument('-tf', '--template_frame', type=int, default=None)
 
     # Post-processing arguments
     parser.add_argument("--visualize", "-v", action='store_true')
@@ -28,7 +29,7 @@ if __name__ == "__main__":
     
     source_root = Path(DEFAULTS.data_root) / args.subject / args.sequence
     target_root = Path(DEFAULTS.output_root) / args.subject_out / DEFAULTS.stage1
-    dataset = PrepareDataset(source_root, target_root, args.camera)
+    dataset = PrepareDataset(source_root, target_root, args.camera, args.template_frame)
 
     COLMAP_recon(dataset.target_root, int(not args.no_gpu))
     post_process(dataset.target_root, args.visualize)
