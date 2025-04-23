@@ -71,7 +71,7 @@ class AvatarDataloader(Dataset):
             print(f'Reading frame info for {seq_name}...')
             # Need to collect filenames for each camera separately in case they are not the same as in ActorsHQ
             cam_to_copy_from = None
-            for i, cam_path in tqdm(enumerate(self.cam_paths)):
+            for i, cam_path in tqdm(enumerate(cam_folders)):
                 cam_name = cam_path.name
 
                 if cam_to_copy_from is not None:
@@ -95,7 +95,7 @@ class AvatarDataloader(Dataset):
                 fg_names[cam_name] = [fg.name for fg in fg_files]
 
                 if i == 1:
-                    first_cam = self.cam_paths[0].name
+                    first_cam = cam_folders[0].name
                     if img_names[cam_name][0] == img_names[first_cam][0]:
                         cam_to_copy_from = first_cam
                 
@@ -114,7 +114,7 @@ class AvatarDataloader(Dataset):
             info['fg_names'] = fg_names
 
 
-            info['frame_num'] = len(info['img_names'][self.cam_paths[0].name])
+            info['frame_num'] = len(info['img_names'][cam_folders[0].name])
             # collect info
             self.dataset_info[seq_name] = info
             self.frame_collection += [(seq_name, f, c) for f in range(info['frame_num']) for c in info['cam_names']]
