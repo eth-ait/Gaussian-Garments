@@ -1,13 +1,3 @@
-#
-# Copyright (C) 2023, Inria
-# GRAPHDECO research group, https://team.inria.fr/graphdeco
-# All rights reserved.
-#
-# This software is free for non-commercial, research and evaluation use 
-# under the terms of the LICENSE.md file.
-#
-# For inquiries contact  george.drettakis@inria.fr
-
 import os
 from pathlib import Path
 from scene.cross_scene import crossScene
@@ -72,9 +62,7 @@ def ait_render(viewer, v, f, cam, vb=None, fb=None):
     return torch.tensor(image)
 
 
-# TODO: rewrite this function
 def logger(loss, iteration, max_iter):
-    # TODO: what's acc and why catch exception?
     global acc
     try:
         acc = {f'AVG_{k}': (acc[f'AVG_{k}']*(iteration-1)+v) / iteration for k, v in loss.items()}
@@ -91,8 +79,8 @@ def logger(loss, iteration, max_iter):
 
 def saver(viewer, gaussians, scene, args, bg):
     current_frame = scene.current_frame
-
-    if current_frame == 0:
+    
+    if current_frame == 0 or args.is_template:
         scene.save(current_frame, args.is_template)
 
     stage2_path = Path(args.subject_out) / DEFAULTS.stage2 
@@ -111,6 +99,11 @@ def saver(viewer, gaussians, scene, args, bg):
     render_cam = scene.getTrainCameras()[0]
     gt_img = render_cam.original_image.detach().cpu()
     img = render(render_cam, gaussians, args, bg)["render"].detach().cpu()
+
+    if viewer is None:
+        h, w = gt_img.shape[-2:]
+        viewer = HeadlessRenderer(size=(2*w, 2*h))
+
     penalize = render_cam.gt_alpha_mask
     penalize = torch.cat([penalize,penalize,penalize]).detach().cpu()
     diff = torch.abs(img - gt_img)
@@ -127,6 +120,8 @@ def saver(viewer, gaussians, scene, args, bg):
         render_path = sequence_path / "renders" / f"{current_frame:05d}.png"
     render_path.parent.mkdir(parents=True, exist_ok=True)
     container.save(render_path)
+
+    return viewer
         
 
 if __name__ == "__main__":
@@ -152,6 +147,8 @@ if __name__ == "__main__":
     parser.add_argument("--collision_iteration", type=int, default=2000)
     parser.add_argument("--ff_collision_iteration", type=int, default=2000)
     parser.add_argument('--start_from', type=int, default=-1)
+
+    parser.add_argument('--use_icp', action='store_true')
 
     parser.add_argument("--camera", default="PINHOLE", type=str) # only used for cross scene
     args = parser.parse_args(sys.argv[1:])
@@ -182,13 +179,15 @@ if __name__ == "__main__":
     gaussians = MeshGaussianModel(args)
 
 
+
     if args.is_template:
         scene = Scene(args, dataloader, gaussians)
     else:
         scene = crossScene(args, dataloader, gaussians)
 
-    w, h = 940, 1280
-    viewer = HeadlessRenderer(size=(2*w, 2*h))
+    # w, h = 940, 1280
+    # viewer = HeadlessRenderer(size=(2*w, 2*h))
+    viewer = None
 
     stage2_path = Path(args.subject_out) / DEFAULTS.stage2 / args.sequence
 
@@ -198,17 +197,6 @@ if __name__ == "__main__":
         is_first_frame = (t==0) or args.is_template
         collision_iteration = args.ff_collision_iteration if is_first_frame else args.collision_iteration
         iterations = args.first_frame_iterations + collision_iteration if is_first_frame else args.other_frame_iterations
-
-        # TODO: useful for testing, remove just before publising
-        ############ DEBUG ############ 
-        # skip first frame if it already exists 
-        if is_first_frame and (stage2_path / "point_cloud").exists(): 
-            continue 
-        # skip if we are starting from a specific frame
-        if t < args.start_from:
-            continue
-        ############ DEBUG ############
-
         
         scene.prepare_frame(t, is_first_frame)
         gaussians.training_setup(opt, is_first_frame and args.is_template_seq)
@@ -278,33 +266,39 @@ if __name__ == "__main__":
             else:
                 loss_dict.update(gaussians.mesh.get_energy_loss(args, use_body))
 
-
-            ############ DEBUG ############ 
+            # assert False
+            # ########### DEBUG ############ 
             # if iter % 100 == 0:
-            #     gt_image_np = gt_image.detach().cpu().numpy().transpose(1, 2, 0)
-            #     image_np = image.detach().cpu().numpy().transpose(1, 2, 0)
-            #     mask_np = mask.detach().cpu().numpy().transpose(1, 2, 0) 
-            #     mask_np = np.concatenate([mask_np, mask_np, mask_np], axis=-1)
+                # gt_image_np = gt_image.detach().cpu().numpy().transpose(1, 2, 0)
+                # image_np = image.detach().cpu().numpy().transpose(1, 2, 0)
+                # mask_np = mask.detach().cpu().numpy().transpose(1, 2, 0) 
+                # mask_np = np.concatenate([mask_np, mask_np, mask_np], axis=-1)
 
-            #     error_map = np.abs(gt_image_np - image_np)
-            #     # print('mask_np', mask_np.shape)
+                # error_map = np.abs(gt_image_np - image_np)
 
-            #     temp_folder = Path('/local/home/agrigorev/Data/temp/s2_debug')
-            #     gt_image_path = temp_folder / 'gt' / f'{iter:05d}.png'
-            #     image_path = temp_folder / 'img' / f'{iter:05d}.png'
-            #     mask_path = temp_folder / 'mask' / f'{iter:05d}.png'
-            #     error_map_path = temp_folder / 'error' / f'{iter:05d}.png'
+                # temp_folder = Path(DEFAULTS.temp_folder)
+                # gt_image_path = temp_folder / 'gt' / f'{iter:05d}.png'
+                # image_path = temp_folder / 'img' / f'{iter:05d}.png'
+                # mask_path = temp_folder / 'mask' / f'{iter:05d}.png'
+                # error_map_path = temp_folder / 'error' / f'{iter:05d}.png'
 
-            #     gt_image_path.parent.mkdir(parents=True, exist_ok=True)
-            #     image_path.parent.mkdir(parents=True, exist_ok=True)
-            #     mask_path.parent.mkdir(parents=True, exist_ok=True)
-            #     error_map_path.parent.mkdir(parents=True, exist_ok=True)
+                # gt_image_path.parent.mkdir(parents=True, exist_ok=True)
+                # image_path.parent.mkdir(parents=True, exist_ok=True)
+                # mask_path.parent.mkdir(parents=True, exist_ok=True)
+                # error_map_path.parent.mkdir(parents=True, exist_ok=True)
 
-            #     Image.fromarray((gt_image_np * 255).astype(np.uint8)).save(gt_image_path)
-            #     Image.fromarray((image_np * 255).astype(np.uint8)).save(image_path)
-            #     Image.fromarray((mask_np * 255).astype(np.uint8)).save(mask_path)
-            #     Image.fromarray((error_map * 255).astype(np.uint8)).save(error_map_path)
-            ############ DEBUG ############ 
+                # # print('gt_image_np', gt_image_np.shape, gt_image_np.min(), gt_image_np.max())
+                # # print('image_np', image_np.shape, image_np.min(), image_np.max())
+                # # print('mask_np', mask_np.shape, mask_np.min(), mask_np.max())
+                # # print('error_map', error_map.shape, error_map.min(), error_map.max())
+
+                # Image.fromarray((gt_image_np * 255).astype(np.uint8)).save(gt_image_path)
+                # Image.fromarray((image_np * 255).astype(np.uint8)).save(image_path)
+                # Image.fromarray((mask_np * 255).astype(np.uint8)).save(mask_path)
+                # Image.fromarray((error_map * 255).astype(np.uint8)).save(error_map_path)
+
+                # assert False
+            # ########### DEBUG ############ 
 
             loss = 0
             for k, v in loss_dict.items():
@@ -337,7 +331,7 @@ if __name__ == "__main__":
 
                 if iter == iterations:
                     print("\n[ITER {}] Saving Gaussians".format(iter))
-                    saver(viewer, gaussians, scene, args, bg)
+                    viewer = saver(viewer, gaussians, scene, args, bg)
 
 
         progress_bar.close()

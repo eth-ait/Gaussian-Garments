@@ -64,13 +64,10 @@ class crossScene(Scene):
         if not is_ff and self.gaussians.prev_xyz is None:
                 self.prep_start_from_frame(self.current_frame)
 
-        # cross_from_glob = self.args.cross_from / 'point_cloud' 
-        # _ply_path = sorted(glob.glob(cross_from_glob))[0]
-        # _ply_path = sorted(cross_from_glob.glob('frame_*'))[0]
-        # print("Loading Gaussian at frame {}".format(_ply_path.name))
         ply_path = Path(self.subject_out) / DEFAULTS.stage2 / "Template" / "local_point_cloud.ply"
-        self.gaussians.load_ply(ply_path)
 
+
+        self.gaussians.load_ply(ply_path)
 
         # image, mask and camera
         self.dataloader.load_frame(t)
@@ -106,10 +103,9 @@ class crossScene(Scene):
             store_cam(self.dataloader.cam_info, stage2_path)
             print(f"Cross from model {self.args.cross_from}")
             # first frame ICP init
-
-
-            self.gaussians.mesh.v = self.sparse_icp()
-            self.gaussians.mesh.v.requires_grad = True
+            if self.args.use_icp:
+                self.gaussians.mesh.v = self.sparse_icp()
+                self.gaussians.mesh.v.requires_grad = True
 
             # body
             body = o3d.io.read_triangle_mesh(self.dataloader.smplx_list[t])

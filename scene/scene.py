@@ -158,6 +158,8 @@ class Scene:
         self.post_each_frame(True)
 
     def post_each_frame(self, is_ff, num_knn=20):
+
+        
         self.gaussians.prev_xyz = self.gaussians.get_xyz.detach()
         self.gaussians.prev_rot = self.gaussians.get_rotation.detach()
         if is_ff:

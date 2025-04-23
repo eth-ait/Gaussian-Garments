@@ -123,6 +123,7 @@ class MeshGaussianModel(GaussianModel):
     
     @property
     def get_xyz(self):
+        self._xyz = self._xyz.to(self.face_orien_mat.device)
         xyz = torch.bmm(self.face_orien_mat[self.binding], self._xyz[..., None]).squeeze(-1)
         return xyz * self.face_scaling[self.binding] + self.face_center[self.binding]
 

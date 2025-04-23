@@ -73,25 +73,31 @@ class PrepareDataset:
         """
 
         cam_paths = sorted([path for path in self.source_root.iterdir() if path.is_dir() and path.name != 'smplx'])
-        
         frame_idx = self.frame_idx
-
-        _imgs = sorted((cam_paths[0]/DEFAULTS.rgb_images).glob("*.png"))
-        start_img_name = _imgs[frame_idx].name
-
-        _gmasks = sorted((cam_paths[0]/DEFAULTS.garment_masks).glob("*.png"))
-        start_gmask_name = _gmasks[frame_idx].name
-
-        _fgmasks = sorted((cam_paths[0]/DEFAULTS.foreground_masks).glob("*.png"))
-        start_fgmask_name = _fgmasks[frame_idx].name
-
+        
         cam_num = len(cam_paths)
 
         for idx, _cam in enumerate(cam_paths):
             print(f"Reading first frame for camera {idx+1}/{cam_num} ")
-            _img = _cam / DEFAULTS.rgb_images / start_img_name
-            _gmask = _cam / DEFAULTS.garment_masks / start_gmask_name
-            _fgmask = _cam / DEFAULTS.foreground_masks / start_fgmask_name
+            cam_name = _cam.name
+
+            _imgs = sorted((_cam/DEFAULTS.rgb_images).glob("*.png"))
+            if len(_imgs) == 0:
+                _imgs = sorted((_cam/DEFAULTS.rgb_images).glob("*.jpg"))
+
+            _gmasks = sorted((_cam/DEFAULTS.garment_masks).glob("*.png"))
+            if len(_gmasks) == 0:
+                _gmasks = sorted((_cam/DEFAULTS.garment_masks).glob("*.jpg"))
+
+            _fgmasks = sorted((_cam/DEFAULTS.foreground_masks).glob("*.png"))
+
+            _img = _imgs[frame_idx]
+            _gmask = _gmasks[frame_idx]
+            _fgmask = _fgmasks[frame_idx]
+
+            # _img = _cam / DEFAULTS.rgb_images / start_img_name
+            # _gmask = _cam / DEFAULTS.garment_masks / start_gmask_name
+            # _fgmask = _cam / DEFAULTS.foreground_masks / start_fgmask_name
             image_dict = load_masked_image(_img, _gmask, _fgmask, np.array([0,1,0]))
             mask = image_dict['mask']
             masked_img = image_dict['masked_img']
