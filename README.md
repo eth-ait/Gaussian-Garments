@@ -103,6 +103,14 @@ python s3_appearance.py -s *subject_id*
 ```
 This will store the training checkpoint into `DEFAULTS.output_root/*subject_id*/stage3/ckpt/`
 
+### Step 4 and creating trajectories:
+In step 4, we optimize the behavior of the garment by finetuning a ContourCraft graph neural network.
+
+To perform this step, please refer to the [ContourCraft](https://github.com/Dolorousrtur/ContourCraft/) repository and specifically to [this notebook](https://github.com/Dolorousrtur/ContourCraft/blob/main/GaussianGarments.ipynb). This notebook also shows how to simulate the garments with ContourCraft in order to create trajectory files needed to run the inference step of Gaussian Garments.
+
+Note that you will need to follow the [installation instructions for ContourCraft](https://github.com/Dolorousrtur/ContourCraft/blob/main/INSTALL.md) before running the finetuning process.
+
+
 ### Inference
 To render a dynamic sequence of Gaussian garment geometries, use `inference.py` script:
 ```bash
