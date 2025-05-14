@@ -38,8 +38,8 @@ class AvatarGaussianModel(MeshGaussianModel):
         tem_dict = read_obj(_template)
 
         stage2_path = output_root / DEFAULTS.stage2
-        sequence_dir = sorted([d for d in stage2_path.iterdir() if d.is_dir()])[0]
-        ply_glob = sequence_dir / 'point_cloud' / 'frame_*'
+        ply_glob = stage2_path / '*' / 'point_cloud' / 'frame_*'
+
         _ply = glob.glob(str(ply_glob))[0]
 
         # init mesh

@@ -75,10 +75,9 @@ class Dataloader():
             cam_name = cam_path.name
 
             if cam_to_copy_from is not None:
-                img_files = self._img_names[cam_to_copy_from]
-                gm_files = self._gm_names[cam_to_copy_from]
-                fg_files = self._fg_names[cam_to_copy_from]
-                continue
+                self._img_names[cam_name] = self._img_names[cam_to_copy_from]
+                self._gm_names[cam_name] = self._gm_names[cam_to_copy_from]
+                self._fg_names[cam_name] = self._fg_names[cam_to_copy_from]            
 
             img_files = sorted((cam_path/DEFAULTS.rgb_images).glob("*.png"))
             if len(img_files) == 0:

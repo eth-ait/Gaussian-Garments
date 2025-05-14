@@ -12,6 +12,7 @@ DEFAULTS['data_root'] = '/path/to/input/dir'
 DEFAULTS['aux_root'] = '/path/to/auxiliary/dir'
 
 
+
 DEFAULTS['stage1'] = 'stage1'
 DEFAULTS['stage2'] = 'stage2'
 DEFAULTS['stage3'] = 'stage3'
