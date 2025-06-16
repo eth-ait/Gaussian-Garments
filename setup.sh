@@ -4,7 +4,7 @@
 eval "$(conda shell.bash hook)"
 
 # # create the environment
-conda create -n gaugar python=3.10
+conda create -n gaugar python=3.10 -y
 
 # # activate the environment
 conda activate gaugar
