@@ -62,7 +62,8 @@ if __name__ == "__main__":
     parser.add_argument('--texture_margin', type=int, default=5)
     parser.add_argument('--white_background', action='store_true', default=False)
     # training config
-    parser.add_argument('--epochs', type=int, default=3)
+    parser.add_argument('--epochs', type=int, default=5)
+    parser.add_argument('--num_workers', type=int, default=8)
     parser.add_argument('--save_iterations', type=int, default=3000)
     parser.add_argument('--pre_train_iterations', type=int, default=3000)
     parser.add_argument('--lr_init', type=float, default=5e-4)
@@ -79,7 +80,6 @@ if __name__ == "__main__":
 
 
     args.debug = False
-    args.epochs = 5
     args.eval = True
     args.shuffle = True
     args.random_bg = True
@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
     # build components
     dataloader = torch.utils.data.DataLoader(AvatarDataloader(args), batch_size=1, 
-                                             shuffle=args.shuffle, num_workers=8)
+                                             shuffle=args.shuffle, num_workers=args.num_workers)
     gaussians = AvatarGaussianModel(args)
     avatar_net = AvatarNet(args, gaussians).to('cuda')
     start_epoch = avatar_net.training_setup(args)
@@ -180,8 +180,13 @@ if __name__ == "__main__":
                     col2 = torch.cat([_a, frame_data['normal'].cpu()], axis=1)
                     _t = torch.cat([col1, col2], axis=-1)
                     # _t = torch.tensor(np.array(Image.fromarray(np.array(_t.permute(1,2,0), dtype=np.uint8)).resize([512, 512]))).permute(2,0,1)
-                    texture = torch.zeros([3, viewpoint_cam.original_image.shape[1], _t.shape[-1]])
-                    texture[:,78:78+_t.shape[1]] = _t
+                    image_height = viewpoint_cam.original_image.shape[1]
+                    if _t.shape[1] > image_height:
+                        _t = F.interpolate(_t[None], size=(image_height, _t.shape[2]),
+                                           mode='bilinear', align_corners=False)[0]
+                    texture = torch.zeros([3, image_height, _t.shape[-1]])
+                    top = (image_height - _t.shape[1]) // 2
+                    texture[:, top:top+_t.shape[1]] = _t
 
                     # store rendering
                     _test_cam = viewpoint_cam
@@ -194,7 +199,7 @@ if __name__ == "__main__":
                     container = container.permute(1,2,0)*255
 
                     _render = stage3_path / "debug_renders" 
-                    container = Image.fromarray(np.array(container, dtype=np.byte), "RGB")
+                    container = Image.fromarray(np.clip(np.array(container), 0, 255).astype(np.uint8))
                     os.makedirs(_render, exist_ok=True)
                     render_path = _render / f"ep{epoch:03d}_iter{iter:06d}_{frame_data['current_seq']}_frame{frame_data['current_frame']:04d}.png"
                     container.save(render_path)
@@ -203,6 +208,7 @@ if __name__ == "__main__":
 
         progress_bar.close()
         avatar_net.save_ckpt(stage3_path, epoch, name=f"epoch{epoch}")
+        avatar_net.save_ckpt(stage3_path, epoch)
 
 
     # All done

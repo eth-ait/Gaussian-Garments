@@ -144,7 +144,7 @@ class Dataloader():
             fx, fy = intrinsic[0, 0], intrinsic[1, 1]
             cx, cy = intrinsic[:2, 2]
             FovY, FovX = focal2fov(fy, height), focal2fov(fx, width)
-            image = Image.fromarray(np.array(masked_img, dtype=np.byte), "RGB")
+            image = Image.fromarray(np.clip(masked_img, 0, 255).astype(np.uint8))
                 
 
             # append camera_info        

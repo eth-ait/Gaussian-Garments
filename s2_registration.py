@@ -112,7 +112,7 @@ def saver(viewer, gaussians, scene, args, bg):
     col2 = torch.cat([img, diff], axis=1)
     container = torch.cat([col1, col2, _ait], axis=-1)
 
-    container = Image.fromarray(np.array(container*255.0, dtype=np.byte).transpose((1, 2, 0)), "RGB")
+    container = Image.fromarray(np.clip(np.array(container)*255.0, 0, 255).astype(np.uint8).transpose((1, 2, 0)))
 
     if args.is_template:
         render_path = stage2_path / "Template" / "template_render.png"

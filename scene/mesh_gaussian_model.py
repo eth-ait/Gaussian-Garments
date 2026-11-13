@@ -54,7 +54,7 @@ class MeshGaussianModel(GaussianModel):
         tem_dict = read_obj(_template)
 
         pc_path = source_path / DEFAULTS.stage1 / 'point_cloud.ply'
-        dense_pc = o3d.io.read_point_cloud(pc_path)
+        dense_pc = o3d.io.read_point_cloud(str(pc_path))
 
         # Convert mesh to point cloud
         xyz = tem_dict['vertices'][tem_dict['faces']].mean(1)

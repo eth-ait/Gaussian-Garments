@@ -23,6 +23,20 @@ The changes concern rendering entries, configuration, input validation, and an
 additional opacity controller trained after S3. The original S1 reconstruction,
 S2 registration, and S3 appearance-training algorithms remain unchanged.
 
+## Registration and Appearance Training I/O
+
+Stage 2 still optimizes a fixed-topology garment mesh against each frame's images.
+We convert point-cloud paths to strings for Open3D and export preview images as
+clipped unsigned 8-bit RGB arrays for Pillow. These changes affect loading and
+diagnostic output, not the registration objective.
+
+Stage 3 consumes the registered mesh sequence, baked AO/normal maps, and calibrated
+images. The appearance network and Gaussian parameters are optimized using the
+existing training losses. Its entry now honors `--epochs` (default 5) and exposes
+`--num_workers` (default 8). At each completed epoch it writes both `epochN/` and
+`ckpt/`, so short sequences also produce the canonical checkpoint consumed by
+rendering. Diagnostic texture panels are resized to fit the input image height.
+
 ## Rendering a Simulated Garment
 
 For each frame, GG takes the simulated garment vertices and the body's position.
