@@ -18,6 +18,8 @@ def add_opacity_arguments(parser):
                         metavar="GARMENT=PATH", help="Repeat once per garment for V3.")
     parser.add_argument("--opacity-garments", nargs="+", default=[],
                         help="Only adjust these trajectory garments; omitted means all garments.")
+    parser.add_argument("--see-through-layers", "--see_through_layers", action="store_true",
+                        help="Keep Gaussians hidden behind translucent garments (default: official culling).")
 
 
 class GarmentOpacity:

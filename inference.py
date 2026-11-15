@@ -232,6 +232,8 @@ class Doll(MeshGaussianModel):
         super(MeshGaussianModel, self).__init__(args.sh_degree)
         self.active_sh_degree = args.sh_degree
         self.opacity_control = GarmentOpacity(args, garment_names, DEFAULTS.output_root)
+        # Opt-in (--see-through-layers): do not cull Gaussians that sit behind a translucent garment.
+        self.see_through_layers = bool(getattr(args, "see_through_layers", False))
 
         # get garment gaussian (temporal version --> to include simulator)
         self.garments = []
@@ -315,6 +317,10 @@ class Doll(MeshGaussianModel):
         # mesh id based mask
         vis_mask = (ans['geometry_ids'].numpy() == np.array(geometry_ids))
         vis_mask += (ans['geometry_ids'].numpy() >= num_gs)
+        # Opt-in: a hit on a translucent garment does not hide Gaussians behind it.
+        if self.see_through_layers and self.opacity_control.scale < 1.0:
+            ids = [i for i, n in enumerate(self.opacity_control.names) if n in self.opacity_control.targets]
+            vis_mask += np.isin(ans['geometry_ids'].numpy(), ids)
         vis_mask = torch.tensor(vis_mask)
         return vis_mask.to(device)
         
